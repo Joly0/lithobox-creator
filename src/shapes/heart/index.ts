@@ -63,7 +63,10 @@ export const heartShape: ShapeDefinition = {
     else r.parts.push(stand);
     if (p.lighting === 'plain' && bool(p, 'loop')) {
       const o = slot.outline;
-      const ring = hangingLoop(k, loopAnchor(o, outlinePoints(o), loopWidth(num(p, 'loopHole'))), T, num(p, 'loopHole'));
+      const pts = outlinePoints(o);
+      // into the margin only, never over the picture
+      const margin = typeof p.lithoMargin === 'number' ? p.lithoMargin : 2;
+      const ring = hangingLoop(k, loopAnchor(o, pts, loopWidth(num(p, 'loopHole'))), T, num(p, 'loopHole'), margin, pts);
       // printed with the heart, lying flat like it, as one object
       r.parts.push({ id: 'loop', object: 'litho-front', mesh: toMeshData(ring), matrix: slot.matrix, color: COLORS.litho, explode: [0, 0, 0], printRotation: [0, 0, 0] });
     }

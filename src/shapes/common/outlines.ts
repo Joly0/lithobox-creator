@@ -124,10 +124,15 @@ export const loopWidth = (hole: number) => hole + 2 * Math.max(2.5, hole * 0.5);
  * A hanging loop in panel space, as thick as the picture: a tab from below the outline's top edge
  * (`at.low`, `overlap` into the picture's margin) up to a ring whose hole (`hole` mm) starts 1 mm
  * above the edge's highest point, so a ribbon always goes through, whatever the outline.
+ * With the `outline` given, the loop keeps off the picture: it covers only the margin band
+ * (`overlap` wide) inside the edge, also beside a dip such as a heart's, where the edge rises.
  */
-export function hangingLoop(k: Kernel, at: { high: number; low: number }, thick: number, hole: number, overlap = 2): Manifold {
+export function hangingLoop(k: Kernel, at: { high: number; low: number }, thick: number, hole: number, overlap = 2, outline?: [number, number][]): Manifold {
   const r = loopWidth(hole) / 2;
   const cy = at.high + 1 + hole / 2;
   const tab = box(k, [-r, at.low - overlap, -thick / 2], [r, cy, thick / 2]);
-  return cylinder(k, 0, cy, -thick / 2, thick, r).add(tab).subtract(cylinder(k, 0, cy, -thick / 2 - 1, thick + 2, hole / 2));
+  const loop = cylinder(k, 0, cy, -thick / 2, thick, r).add(tab).subtract(cylinder(k, 0, cy, -thick / 2 - 1, thick + 2, hole / 2));
+  if (!outline) return loop;
+  const picture = new k.CrossSection([outline]).offset(-overlap, 'Round').extrude(thick + 2).translate([0, 0, -thick / 2 - 1]);
+  return loop.subtract(picture);
 }

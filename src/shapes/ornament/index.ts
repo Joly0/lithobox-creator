@@ -54,7 +54,9 @@ export const ornamentShape: ShapeDefinition = {
     parts.push({ id: 'panel-picture', mesh: toMeshData(stand), matrix, color: COLORS.panel, explode: [0, 0, 0], printRotation: [0, 0, 0], preview: true, ghost: true });
     let top = h;
     if (bool(p, 'loop')) {
-      const ring = hangingLoop(k, loopAnchor(o, pts, loopWidth(num(p, 'loopHole'))), T, num(p, 'loopHole'));
+      // into the margin only, never over the picture
+      const margin = typeof p.lithoMargin === 'number' ? p.lithoMargin : 2;
+      const ring = hangingLoop(k, loopAnchor(o, pts, loopWidth(num(p, 'loopHole'))), T, num(p, 'loopHole'), margin, pts);
       top = h / 2 + ring.boundingBox().max[1];
       // printed with the picture, in its panel space, as one object
       parts.push({ id: 'loop', object: 'litho-picture', mesh: toMeshData(ring), matrix, color: COLORS.litho, explode: [0, 0, 0], printRotation: [0, 0, 0] });

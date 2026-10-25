@@ -59,3 +59,22 @@ describe('ornament', () => {
     expect(Math.max(...ys) - low).toBeCloseTo(72, 6);
   });
 });
+
+describe('hanging loop', () => {
+  // the relief lies inside the outline, a margin in from its edge: the loop may cover that margin, never the picture
+  for (const outline of OUTLINES)
+    it(`keeps off the picture of a ${outline}`, async () => {
+      const k = await loadKernel();
+      const p = sanitize(ornamentShape, { ...defaultValues(ornamentShape), outline, loop: true });
+      withScope(() => {
+        const r = ornamentShape.build(k, p);
+        const loop = solid(k, r.parts.find((x) => x.id === 'loop')!.mesh);
+        const o = r.slots[0].outline!, T = r.slots[0].thickness;
+        const margin = typeof p.lithoMargin === 'number' ? p.lithoMargin : 2;
+        const shape = new k.CrossSection([outlinePoints(o)]);
+        const prism = (c: InstanceType<Kernel['CrossSection']>) => c.extrude(T + 2).translate([0, 0, -T / 2 - 1]);
+        expect(loop.intersect(prism(shape.offset(-margin - 0.01, 'Round'))).volume(), 'over the picture').toBeLessThan(1e-3);
+        expect(loop.intersect(prism(shape)).volume(), 'joined to the margin').toBeGreaterThan(1);
+      });
+    });
+});
