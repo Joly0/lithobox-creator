@@ -161,6 +161,15 @@ export function lampMaterial(panelNormal: THREE.Vector3, reach: number, minT: nu
       }
       void main() {
         #include <clipping_planes_fragment>
+        // seen from the lamp's side (vN points the way the light travels): plain lit plastic.
+        // The picture only shows on the far side; without this both faces showed it, which the
+        // print view, where every part can be seen from all round, made plain.
+        if (dot(cameraPosition - vWorld, vN) < 0.0) {
+          vec3 lit = light * (irradiance(vWorld, normalize(vN)) / max(vIrr0, 1e-4));
+          lit = min(1.25 * lit / (1.0 + 0.25 * lit), vec3(1.0));
+          gl_FragColor = vec4(pow(lit, vec3(1.0 / 2.2)), 1.0);
+          return;
+        }
         float t = vT;
         // a colour picture's stacks: the share of red, green and blue they let through
         vec3 filt = vec3(1.0);

@@ -1,5 +1,6 @@
 // Geometry runs here so the page stays responsive while solids are rebuilt.
 import wasmUrl from 'manifold-3d/manifold.wasm?url';
+import { sanitize } from '../core/shape';
 import type { BuildResult, ParamValues } from '../core/types';
 import { addLithophanes, PREVIEW_RES } from '../litho/build';
 import type { Luminance } from '../litho/mesh';
@@ -23,10 +24,13 @@ export type BuildResponse =
 const kernel = loadKernel(() => wasmUrl);
 
 self.onmessage = async (ev: MessageEvent<BuildRequest>) => {
-  const { id, shape, params, pictures, resolution } = ev.data;
+  const { id, shape, pictures, resolution } = ev.data;
   try {
     const k = await kernel;
     const def = getShape(shape);
+    // completed with this code's defaults: a page loaded before an update sends settings that
+    // lack the newer ones, which would otherwise build as NaN (an empty part)
+    const params = sanitize(def, ev.data.params);
     await def.prepare?.(params);
     const t0 = performance.now();
     const result = withScope(() => {
