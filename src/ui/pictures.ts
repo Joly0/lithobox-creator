@@ -3,23 +3,14 @@
 // a slot, or drag one slot onto another to swap them. Each slot keeps its own crop and
 // tone. Photos stay in this browser tab; nothing is uploaded.
 import { has, t } from '../i18n';
-import type { Outline } from '../core/types';
-import { insideOutline } from '../litho/mesh';
-import { DEFAULT_EDIT, loadPhoto, overflow, sampleLuminance, samplePhoto, type Photo, type PictureEdit, type Placement } from '../litho/image';
+import { round } from '../core/shape';
+import { DEFAULT_EDIT, loadPhoto, samplePhoto, type Photo, type PictureEdit, type Placement } from '../litho/image';
 import { deletePhoto, loadPhotos, loadValue, savePhoto, saveValue, type StoredPhoto } from './storage';
+import { button, cleanEdit, pictureEditor, THUMB } from './editor';
+import { maskKey, paintPhoto, paintPlacement, type SlotInfo } from './paint';
 
-export interface SlotInfo {
-  id: string;
-  /** Picture area (inside the margin) in mm. */
-  width: number;
-  height: number;
-  /** A picture cut to an outline (centred on the area, mm), and the margin kept inside it. */
-  outline?: Outline;
-  margin?: number;
-}
+export type { SlotInfo } from './paint';
 
-const THUMB = 64;
-const EDITOR = 280;
 const DRAG_TYPE = 'text/x-lithobox';
 
 export class PicturesPanel {
@@ -415,7 +406,7 @@ export class PicturesPanel {
     });
 
     if (this.choosing === slot.id) row.append(this.chooser(slot));
-    if (pl && this.editing === slot.id) row.append(this.editor(slot, pl, thumb));
+    if (pl && this.editing === slot.id) row.append(pictureEditor(slot, pl, thumb, () => this.changed()));
     return row;
   }
 
@@ -438,193 +429,4 @@ export class PicturesPanel {
     }
     return strip;
   }
-
-  // ---------------------------------------------------------------- editor
-
-  private editor(slot: SlotInfo, pl: Placement, thumb: HTMLCanvasElement): HTMLElement {
-    const ed = document.createElement('div');
-    ed.className = 'pic-editor';
-    const view = document.createElement('canvas');
-    view.className = 'pic-view';
-    view.width = EDITOR;
-    view.height = Math.max(20, Math.round((EDITOR * slot.height) / slot.width));
-    const mm = slot.width / EDITOR;
-    paintPlacement(view, pl, mm, slot);
-
-    let frame = 0;
-    const set = (patch: Partial<PictureEdit>) => {
-      Object.assign(pl.edit, patch);
-      pl.version++;
-      syncControls();
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        paintPlacement(view, pl, mm, slot);
-        paintPlacement(thumb, pl, slot.width / THUMB, slot);
-      });
-      this.changed();
-    };
-
-    // drag to move the photo, wheel to zoom
-    let drag: { x: number; y: number } | null = null;
-    view.addEventListener('pointerdown', (e) => {
-      drag = { x: e.clientX, y: e.clientY };
-      view.setPointerCapture(e.pointerId);
-    });
-    view.addEventListener('pointermove', (e) => {
-      if (!drag) return;
-      const scale = view.width / view.getBoundingClientRect().width;
-      const { maxX, maxY } = overflow(pl, view.width, view.height);
-      const dx = (e.clientX - drag.x) * scale, dy = (e.clientY - drag.y) * scale;
-      drag = { x: e.clientX, y: e.clientY };
-      set({
-        offsetX: clamp(pl.edit.offsetX - (maxX ? dx / maxX : 0), -1, 1),
-        offsetY: clamp(pl.edit.offsetY - (maxY ? dy / maxY : 0), -1, 1),
-      });
-    });
-    view.addEventListener('pointerup', () => (drag = null));
-    view.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      set({ zoom: clamp(pl.edit.zoom * Math.pow(1.1, -e.deltaY / 100), 1, 5) });
-    }, { passive: false });
-
-    const tools = document.createElement('div');
-    tools.className = 'pic-tools';
-    const fill = button('', () => set({ fill: !pl.edit.fill, offsetX: 0, offsetY: 0 }));
-    tools.append(
-      button(t('pictures.left90'), () => set({ rotation: wrap(pl.edit.rotation - 90), offsetX: 0, offsetY: 0 })),
-      button(t('pictures.right90'), () => set({ rotation: wrap(pl.edit.rotation + 90), offsetX: 0, offsetY: 0 })),
-      button(t('pictures.flipH'), () => set({ flipH: !pl.edit.flipH })),
-      button(t('pictures.flipV'), () => set({ flipV: !pl.edit.flipV })),
-      fill,
-      button(t('pictures.reset'), () => set({ ...DEFAULT_EDIT })),
-    );
-
-    type Slider = [keyof PictureEdit, number, number, number, (v: number) => string];
-    const pct = (v: number) => `${Math.round(v * 100)} %`;
-    const signed = (v: number) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}`;
-    const groups: [string, Slider[]][] = [
-      ['pictures.groupFrame', [
-        ['zoom', 1, 5, 0.01, pct],
-        ['rotation', -180, 180, 1, (v) => `${Math.round(v)}°`],
-      ]],
-      ['pictures.groupTone', [
-        ['exposure', -2, 2, 0.05, (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`],
-        ['contrast', -1, 1, 0.01, signed],
-        ['highlights', -1, 1, 0.01, signed],
-        ['shadows', -1, 1, 0.01, signed],
-        ['sharpness', 0, 2, 0.05, pct],
-      ]],
-    ];
-    const inputs: { key: keyof PictureEdit; input: HTMLInputElement; out: HTMLElement; fmt: (v: number) => string }[] = [];
-    const controls = document.createElement('div');
-    controls.className = 'pic-controls';
-    for (const [title, sliders] of groups) {
-      const h = document.createElement('div');
-      h.className = 'pic-group-title';
-      h.textContent = t(title);
-      controls.append(h);
-      for (const [key, min, max, step, fmt] of sliders) {
-        const lab = document.createElement('label');
-        lab.className = 'pic-slider';
-        const span = document.createElement('span');
-        span.textContent = t(`pictures.${key}`);
-        const input = document.createElement('input');
-        input.type = 'range';
-        input.min = String(min);
-        input.max = String(max);
-        input.step = String(step);
-        input.addEventListener('input', () => set({ [key]: parseFloat(input.value) } as Partial<PictureEdit>));
-        input.addEventListener('dblclick', () => set({ [key]: DEFAULT_EDIT[key] } as Partial<PictureEdit>));
-        const out = document.createElement('output');
-        inputs.push({ key, input, out, fmt });
-        lab.append(span, input, out);
-        controls.append(lab);
-      }
-    }
-    const syncControls = () => {
-      for (const { key, input, out, fmt } of inputs) {
-        input.value = String(pl.edit[key]);
-        out.textContent = fmt(pl.edit[key] as number);
-      }
-      fill.textContent = pl.edit.fill ? t('pictures.fit') : t('pictures.fill');
-    };
-    syncControls();
-
-    const tip = document.createElement('p');
-    tip.className = 'hint';
-    tip.textContent = t('pictures.editHint');
-    ed.append(view, tip, tools, controls);
-    return ed;
-  }
-}
-
-/** Identifies a slot's outline, so a changed outline repaints. */
-const maskKey = (s: SlotInfo) => (s.outline ? JSON.stringify([s.outline, s.margin ?? 0]) : '');
-
-const masks = new Map<string, Uint8Array>();
-/** Per pixel: 1 where the picture shows (inside the outline, less its margin), as the relief is built. */
-function pictureMask(slot: SlotInfo, w: number, h: number): Uint8Array | null {
-  const o = slot.outline;
-  if (!o) return null;
-  const key = `${maskKey(slot)}:${slot.width}x${slot.height}:${w}x${h}`;
-  let m = masks.get(key);
-  if (!m) {
-    if (masks.size > 32) masks.clear();
-    m = new Uint8Array(w * h);
-    for (let j = 0; j < h; j++)
-      for (let i = 0; i < w; i++) {
-        const x = ((i + 0.5) / w - 0.5) * slot.width, y = (0.5 - (j + 0.5) / h) * slot.height;
-        m[j * w + i] = insideOutline(o, x, y, slot.margin ?? 0) ? 1 : 0;
-      }
-    masks.set(key, m);
-  }
-  return m;
-}
-
-/** Grayscale preview of a placement, as it will be turned into relief; outside an outline dimmed. */
-function paintPlacement(c: HTMLCanvasElement, pl: Placement, mmPerPixel: number, slot?: SlotInfo): void {
-  const lum = sampleLuminance(pl, c.width, c.height, mmPerPixel);
-  const mask = slot ? pictureMask(slot, c.width, c.height) : null;
-  const ctx = c.getContext('2d')!;
-  const img = ctx.createImageData(c.width, c.height);
-  for (let i = 0; i < lum.data.length; i++) {
-    const v = Math.round(lum.data[i] * 255);
-    if (mask && !mask[i]) {
-      // cut away: faint, and tinted so it does not read as part of the picture
-      img.data[i * 4] = 70 + v * 0.2;
-      img.data[i * 4 + 1] = 60 + v * 0.2;
-      img.data[i * 4 + 2] = 55 + v * 0.2;
-    } else img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
-    img.data[i * 4 + 3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
-}
-
-/** Colour thumbnail of a library photo (cropped to a square). */
-function paintPhoto(c: HTMLCanvasElement, photo: Photo): void {
-  const ctx = c.getContext('2d')!;
-  const b = photo.bitmap;
-  const s = Math.max(c.width / b.width, c.height / b.height);
-  ctx.drawImage(b, (c.width - b.width * s) / 2, (c.height - b.height * s) / 2, b.width * s, b.height * s);
-}
-
-function button(label: string, onClick: () => void, kind = '', title = ''): HTMLButtonElement {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = `btn small ${kind}`.trim();
-  b.textContent = label;
-  if (title) b.title = title;
-  b.addEventListener('click', onClick);
-  return b;
-}
-
-const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
-const wrap = (deg: number) => ((((deg + 180) % 360) + 360) % 360) - 180;
-const round = (v: number) => Math.round(v * 10) / 10;
-
-/** A stored crop and tone, with anything missing or of the wrong type back at its default. */
-function cleanEdit(e: Partial<PictureEdit>): PictureEdit {
-  const out: PictureEdit = { ...DEFAULT_EDIT };
-  for (const k of Object.keys(out) as (keyof PictureEdit)[]) if (typeof e[k] === typeof out[k]) (out as unknown as Record<string, unknown>)[k] = e[k];
-  return out;
 }

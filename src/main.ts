@@ -1,12 +1,7 @@
 import './style.css';
 import { defaultValues, matchingPreset, sanitize } from './core/shape';
 import type { BuildResult, ParamValues } from './core/types';
-import { to3mf } from './export/threemf';
-import { toStl } from './export/stl';
-import { toBambu3mf, type PrintObject } from './export/bambu3mf';
 import { loadProfile, profileFromFile, saveProfile, type StoredProfile } from './export/profile';
-import { orientGroup } from './export/transform';
-import { zip } from './export/zip';
 import { PROJECT_EXT, ProjectError, readProject, writeProject } from './export/project';
 import { GeometryClient } from './geometry/client';
 import { detectLanguage, languages, onLanguageChange, setLanguage, shapeKey, t } from './i18n';
@@ -20,6 +15,8 @@ import { triangleEstimate, type Luminance } from './litho/mesh';
 import { browserFamily } from './ui/browser';
 import { replayRestored } from './ui/restore';
 import { printLayout } from './ui/printlayout';
+import { save, wireExports } from './ui/export';
+import { changedValues, hashFor, readHash } from './ui/hash';
 import { NoViewer, Viewer, type LampMap, type ModelViewer } from './ui/viewer';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -27,30 +24,15 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const staticInputs = [...document.querySelectorAll<HTMLInputElement>('input')];
 
 // ------------------------------------------------------------ state from URL
-function readHash(): { shape: string; params: Partial<ParamValues> } {
-  const h = new URLSearchParams(location.hash.slice(1));
-  let params: Partial<ParamValues> = {};
-  try {
-    const p = h.get('p');
-    if (p) params = JSON.parse(decodeURIComponent(escape(atob(p))));
-  } catch {
-    /* ignore a broken share link */
-  }
-  return { shape: h.get('s') ?? loadLastShape() ?? shapes[0].id, params };
-}
-
 function writeHash(): void {
-  const defs = defaultValues(shape);
-  const changed: ParamValues = {};
-  for (const [k, v] of Object.entries(values)) if (defs[k] !== v) changed[k] = v;
-  const h = new URLSearchParams({ s: shape.id });
-  if (Object.keys(changed).length) h.set('p', btoa(unescape(encodeURIComponent(JSON.stringify(changed)))));
-  history.replaceState(null, '', `#${h}`);
+  const changed = changedValues(shape, values);
+  history.replaceState(null, '', `#${hashFor(shape.id, changed)}`);
   // also remember them in this browser for the next visit
   saveSettings(shape.id, changed);
 }
 
-const initial = readHash();
+const fromLink = readHash(location.hash);
+const initial = { shape: fromLink.shape ?? loadLastShape() ?? shapes[0].id, params: fromLink.params };
 let shape = getShape(initial.shape);
 // a share link (settings in the address) wins; otherwise the last visit's settings
 const hasLink = new URLSearchParams(location.hash.slice(1)).has('p');
@@ -430,47 +412,7 @@ function renderInfo(r: BuildResult): void {
 }
 
 // ------------------------------------------------------------ export
-/** Printable parts in print orientation; volumes of one object are oriented together. */
-function printable(r: BuildResult) {
-  return printObjects(r).flatMap((o, i) =>
-    o.volumes.map((v, j) => ({ id: o.volumes.length > 1 ? `${o.ids[j]}` : o.ids[0], name: v.name, positions: v.positions, indices: v.indices, key: `${i}-${j}` })),
-  );
-}
-
-function save(blob: Blob, name: string): void {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-}
-
 const baseName = () => `lithobox-${shape.id}`;
-
-async function downloadStl(partId: string): Promise<void> {
-  const r = await exportResult();
-  if (!r) return;
-  const p = printable(r).find((x) => x.id === partId);
-  if (p) save(new Blob([toStl(p.positions, p.indices) as BlobPart]), `${baseName()}-${p.id}.stl`);
-}
-
-/** Printable parts grouped into slicer objects (volumes of one object stay together). */
-function printObjects(r: BuildResult): (PrintObject & { ids: string[] })[] {
-  const groups = new Map<string, typeof r.parts>();
-  for (const p of r.parts.filter((x) => !x.preview)) {
-    const key = p.object ?? p.id;
-    groups.set(key, [...(groups.get(key) ?? []), p]);
-  }
-  return [...groups.entries()].map(([key, parts]) => {
-    const pos = orientGroup(parts.map((p) => p.mesh), parts[0].printRotation);
-    return {
-      name: partName(key),
-      ids: parts.map((p) => p.id),
-      settings: Object.assign({}, ...parts.map((p) => p.slicer ?? {})),
-      volumes: parts.map((p, i) => ({ name: partName(p.id), positions: pos[i], indices: p.mesh.indices, extruder: p.extruder })),
-    };
-  });
-}
 
 // ------------------------------------------------------------ slicer profile
 let profile: StoredProfile | null = loadProfile();
@@ -503,30 +445,17 @@ $('profileClear').addEventListener('click', () => {
   renderProfile();
 });
 
-$('export3mf').addEventListener('click', async () => {
-  const r = await exportResult();
-  if (!r) return;
-  const objects = printObjects(r);
-  let bed: [number, number] = typeof values.bedSize === 'number' ? [values.bedSize, values.bedSize] : [256, 256];
-  if (profile) {
-    bed = profile.bed;
-    // parts meant for a filament the profile doesn't have go to filament 1
-    const count = Math.max(1, profile.filaments.length);
-    for (const o of objects) for (const v of o.volumes) if ((v.extruder ?? 1) > count) v.extruder = 1;
-  }
-  save(await toBambu3mf(objects, { title: t('app.title'), bed, profile: profile ?? undefined }), `${baseName()}.3mf`);
-});
-$('exportPlain').addEventListener('click', async () => {
-  const r = await exportResult();
-  if (!r) return;
-  save(await to3mf(printable(r), t('app.title')), `${baseName()}-plain.3mf`);
-});
-$('exportStl').addEventListener('click', async () => {
-  const r = await exportResult();
-  if (!r) return;
-  const files = printable(r).map((p) => ({ name: `${baseName()}-${p.id}.stl`, data: toStl(p.positions, p.indices) }));
-  save(await zip(files), `${baseName()}-stl.zip`);
-});
+const downloadStl = wireExports(
+  {
+    result: exportResult,
+    partName,
+    baseName,
+    title: () => t('app.title'),
+    bed: () => (typeof values.bedSize === 'number' ? [values.bedSize, values.bedSize] : [256, 256]),
+    profile: () => profile,
+  },
+  { bambu: $('export3mf'), plain: $('exportPlain'), stl: $('exportStl') },
+);
 
 // ------------------------------------------------------------ project file
 // One .lithobox file with the settings and the placed photos: a backup, or a design to send.
