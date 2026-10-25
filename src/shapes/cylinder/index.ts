@@ -4,13 +4,12 @@
 //
 // Model space: millimetres, Z up, the cylinder's axis on x = y = 0, standing on z = 0, the
 // picture's middle facing -Y.
-import { bool, num, str, type ShapeDefinition } from '../../core/shape';
+import { bool, num, round, type ShapeDefinition, str } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
 import { cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
-import { round } from '../box/layout';
-import { annulus, cableCuts, cableSlot, curvedText, lampCuts, lidText, ringText, roundSlotMatrix, type CableSlot } from '../common/base';
+import { annulus, applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, lampCuts, lidText, puckLamp, ringText, roundSlotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
-import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, roundTray, type PowerLayout } from '../common/power';
+import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
 import { cylinderGroups, withBase } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', ring: '#e9a23b', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -141,14 +140,8 @@ export const cylinderShape: ShapeDefinition = {
       const t = P
         ? curvedText(k, p, 0, 0, tr, powerTextZ(P), TEXT_ARC * tr - 8, P.inner - 4)
         : curvedText(k, p, 0, 0, L.rBase, L.baseTop / 2, TEXT_ARC * L.rBase - 8, L.baseTop - 2);
-      if (t?.shrunk) warnings.push({ key: 'warn.textShrunkBase' });
-      if (tray) {
-        if (t?.cut) tray = tray.subtract(t.cut);
-        if (t?.add) tray = tray.add(t.add);
-      } else {
-        if (t?.cut) base = base.subtract(t.cut);
-        if (t?.add) base = base.add(t.add);
-      }
+      if (tray) tray = applyFrontText(tray, t, warnings);
+      else base = applyFrontText(base, t, warnings);
       parts.push({ id: 'base', mesh: toMeshData(base), color: COLORS.base, explode: [0, 0, 0], printRotation: [0, 0, 0] });
       if (tray) parts.push({ id: 'power', mesh: toMeshData(tray), color: COLORS.power, explode: [0, 0, -70], printRotation: [0, 0, 0] });
       if (t?.volume) parts.push({ id: 'text-base', object: tray ? 'power' : 'base', extruder: 2, mesh: toMeshData(t.volume), color: COLORS.text, explode: [0, 0, 0], printRotation: [0, 0, 0] });
@@ -170,17 +163,14 @@ export const cylinderShape: ShapeDefinition = {
     const tube = annulus(k, L.rIn, L.rOut, L.panelBottom, L.panelTop);
     parts.push({ id: 'panel-round', mesh: toMeshData(tube), color: COLORS.panel, explode: [0, 0, 60], printRotation: [0, 0, 0], preview: true, ghost: true });
     if (withBase(p)) {
-      const lampR = num(p, 'lampDiameter') / 2 - 2;
-      const lamp = cylinder(k, 0, 0, L.baseTop - num(p, 'lampSeatDepth'), 30, lampR * 0.85, lampR);
-      parts.push({ id: 'lamp', mesh: toMeshData(lamp), color: COLORS.lamp, explode: [0, 0, 20], printRotation: [0, 0, 0], preview: true, ghost: true });
+      parts.push(puckLamp(k, p, 0, L.baseTop));
     }
 
     const info: Message[] = [
       { key: 'info.outer', vars: { x: round(L.power?.outerX ?? 2 * L.rBase), y: round(L.power?.outerY ?? 2 * L.rBase), z: round(L.top + (L.power ? L.power.height - L.power.seat : 0)) } },
       { key: 'info.cylinder', vars: { d: round(2 * L.rOut), h: round(L.height), t: L.thick, w: round(L.width) } },
     ];
-    if (L.power) info.push({ key: 'info.power', vars: { t: round(L.power.inner - 1) } });
-    if (L.power && str(p, 'powerJoint') === 'magnets') info.push({ key: 'info.powerMagnets', vars: { d: num(p, 'magnetDiameter'), h: num(p, 'magnetHeight') } });
+    pushPowerInfo(info, L.power, p);
     const slots = [slot];
     if (L.topR) {
       const z1 = L.top - 0.2;

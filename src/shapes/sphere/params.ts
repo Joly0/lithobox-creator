@@ -1,6 +1,6 @@
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { fromBox, keys } from '../common/params';
+import { fromBox, keys, powerGroup } from '../common/params';
 
 /** Standing on its own cut rim (over an existing lamp fitting), or in a base with a lamp. */
 export const MOUNTS = ['standalone', 'base'];
@@ -11,7 +11,6 @@ export const basePuck = (p: ParamValues) => onBase(p) && p.tableLamp === 'puck';
 export const baseSocket = (p: ParamValues) => onBase(p) && p.tableLamp === 'socket';
 
 const litho = boxGroups.find((g) => g.id === 'litho')!;
-const power = (p: ParamValues) => basePuck(p) && p.powerBase === true;
 
 export const sphereGroups: ParamGroup[] = [
   {
@@ -62,14 +61,7 @@ export const sphereGroups: ParamGroup[] = [
     id: 'text',
     params: [...keys(onBase, 'baseText', 'baseTextStyle', 'baseTextSize', 'textFont', 'textDepth'), fromBox('textSecondColor', onBase)],
   },
-  {
-    // battery tray under a base with a puck light
-    id: 'power',
-    params: [
-      ...boxGroups.find((g) => g.id === 'power')!.params.map((d) => fromBox(d.key, basePuck)),
-      ...['magnetDiameter', 'magnetHeight', 'magnetClearance'].map((k) => fromBox(k, basePuck, { visibleIf: (p) => power(p) && p.powerJoint === 'magnets' })),
-      fromBox('pegSize', basePuck, { visibleIf: (p) => power(p) && p.powerJoint === 'pegs' }),
-    ],
-  },
+  // battery tray under a base with a puck light
+  powerGroup(basePuck),
   boxGroups.find((g) => g.id === 'print')!,
 ];

@@ -5,7 +5,7 @@
 //
 // A shape gives its outlines (the tray's outside, the pocket it stands in, the open inside),
 // the pillar centres, and where the tray's front and back are; the rest is shared.
-import { bool, num, str } from '../../core/shape';
+import { bool, num, round, str } from '../../core/shape';
 import type { Message, ParamValues } from '../../core/types';
 import { box, cylinder, prism, roundedRect, squareFrustum, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
 import { magnetH, magnetR, pegHeight } from './lid';
@@ -15,7 +15,6 @@ export const POWER_FIT = 0.3; // gap between the shape and the power base pocket
 export const POWER_LEDGE = 2.5; // ledge inside the power base rim that the shape rests on
 export const PILLAR = 12; // pillars the shape rests on
 
-const round = (v: number) => Math.round(v * 10) / 10;
 
 export interface PowerLayout {
   /** Size of the tray's footprint. */
@@ -102,6 +101,13 @@ export function powerLayout(
 function pillarSolid(k: Kernel, x: number, y: number, rot: number, h: number, z0: number, z1: number): Manifold {
   const m = box(k, [x - h, y - h, z0], [x + h, y + h, z1]);
   return rot ? m.translate([-x, -y, 0]).rotate([0, 0, rot]).translate([x, y, 0]) : m;
+}
+
+/** The battery base's info lines: room for the battery, and the magnets when it holds with them. */
+export function pushPowerInfo(info: Message[], P: PowerLayout | null, p: ParamValues): void {
+  if (!P) return;
+  info.push({ key: 'info.power', vars: { t: round(P.inner - 1) } });
+  if (str(p, 'powerJoint') === 'magnets') info.push({ key: 'info.powerMagnets', vars: { d: num(p, 'magnetDiameter'), h: num(p, 'magnetHeight') } });
 }
 
 /**

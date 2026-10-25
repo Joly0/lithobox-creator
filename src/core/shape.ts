@@ -57,3 +57,5 @@ export function sanitize(shape: ShapeDefinition, input: Partial<ParamValues>): P
 export const num = (p: ParamValues, k: string): number => p[k] as number;
 export const bool = (p: ParamValues, k: string): boolean => p[k] as boolean;
 export const str = (p: ParamValues, k: string): string => p[k] as string;
+/** A number for messages, to `d` decimals (0.1 by default). */
+export const round = (v: number, d = 1) => Math.round(v * 10 ** d) / 10 ** d;

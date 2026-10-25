@@ -1,11 +1,10 @@
 import type { ParamGroup } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { fromBox, keys } from '../common/params';
+import { always, fromBox, keys, powerGroup } from '../common/params';
 import { LIGHTING, withBase } from '../cylinder/params';
 
 export { withBase };
 
-const always = () => true;
 
 // support fins as for the flat picture: a curve alone stands, but wobbles while it prints tall
 const litho = boxGroups.find((g) => g.id === 'litho')!;
@@ -45,14 +44,6 @@ export const arcGroups: ParamGroup[] = [
     params: [...keys(withBase, 'baseText', 'baseTextStyle', 'baseTextSize', 'textFont', 'textDepth'), fromBox('textSecondColor', withBase)],
   },
   // battery tray under the base, following its outline
-  {
-    id: 'power',
-    params: [
-      ...boxGroups.find((g) => g.id === 'power')!.params.map((d) => fromBox(d.key, withBase)),
-      // no lid here: the magnets and pegs between base and tray get their sizes in this group
-      ...['magnetDiameter', 'magnetHeight', 'magnetClearance'].map((k) => fromBox(k, withBase, { visibleIf: (p) => withBase(p) && p.powerBase === true && p.powerJoint === 'magnets' })),
-      fromBox('pegSize', withBase, { visibleIf: (p) => withBase(p) && p.powerBase === true && p.powerJoint === 'pegs' }),
-    ],
-  },
+  powerGroup(withBase),
   boxGroups.find((g) => g.id === 'print')!,
 ];

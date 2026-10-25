@@ -3,12 +3,11 @@
 // loop (the loop is a second volume of the lithophane's slicer object).
 //
 // Model space: millimetres, Z up, the ornament standing upright facing -Y, its bottom on z = 0.
-import { bool, num, str, type ShapeDefinition } from '../../core/shape';
+import { bool, num, round, type ShapeDefinition, str } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamGroup, PartOutput } from '../../core/types';
 import { toMeshData } from '../../geometry/kernel';
 import { outlinePoints } from '../../litho/mesh';
 import { boxGroups } from '../box/params';
-import { round } from '../box/layout';
 import { roundSlotMatrix } from '../common/base';
 import { fromBox } from '../common/params';
 import { hangingLoop, loopAnchor, loopWidth, outlineFor, outlineSize, OUTLINES } from '../common/outlines';

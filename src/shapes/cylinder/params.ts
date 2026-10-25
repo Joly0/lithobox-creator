@@ -1,13 +1,12 @@
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { fromBox, keys } from '../common/params';
+import { always, fromBox, keys, powerGroup } from '../common/params';
 
 /** With a base (lamp seat, cable) or the cylinder on its own. */
 export const LIGHTING = ['base', 'plain'];
 
 export const withBase = (p: ParamValues) => p.lighting === 'base';
 
-const always = () => true;
 const ring = (p: ParamValues) => p.topRing === true;
 
 // a cylinder stands on its own while it prints: no support fins
@@ -57,14 +56,6 @@ export const cylinderGroups: ParamGroup[] = [
     ],
   },
   // battery tray under the base, round like it
-  {
-    id: 'power',
-    params: [
-      ...boxGroups.find((g) => g.id === 'power')!.params.map((d) => fromBox(d.key, withBase)),
-      // no lid here: the magnets and pegs between base and tray get their sizes in this group
-      ...['magnetDiameter', 'magnetHeight', 'magnetClearance'].map((k) => fromBox(k, withBase, { visibleIf: (p) => withBase(p) && p.powerBase === true && p.powerJoint === 'magnets' })),
-      fromBox('pegSize', withBase, { visibleIf: (p) => withBase(p) && p.powerBase === true && p.powerJoint === 'pegs' }),
-    ],
-  },
+  powerGroup(withBase),
   boxGroups.find((g) => g.id === 'print')!,
 ];

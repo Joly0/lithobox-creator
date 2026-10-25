@@ -2,8 +2,8 @@
 // cable hole and channel, and text on the front. Each shape decides where its base is; these
 // only need the lamp centre, the base top and how far the cable may run.
 import { bool, num, str } from '../../core/shape';
-import type { Message, ParamValues, Vec3 } from '../../core/types';
-import { cylinder, prism, roundedRect, type Kernel, type Manifold } from '../../geometry/kernel';
+import type { MeshData, Message, ParamValues, PartOutput, Vec3 } from '../../core/types';
+import { box, cylinder, prism, roundedRect, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { textOutline } from '../../geometry/text';
 import { CABLE_PRESETS } from '../box/params';
 
@@ -53,6 +53,31 @@ export function cableSlot(p: ParamValues, limit: number, warnings: Message[]): C
   if (outer - inner < cw) warnings.push({ key: 'warn.cableOutside' });
   const length = Math.max(outer - inner, 0.5);
   return { width: cw, length, offset: inner + length / 2 };
+}
+
+/**
+ * The puck light in its seat, as a see-through preview part: centred at y = `cy`, standing in
+ * the seat cut into the base top. `mesh` is for shapes that move their meshes (the arc).
+ */
+export function puckLamp(k: Kernel, p: ParamValues, cy: number, baseTop: number, mesh: (m: Manifold) => MeshData = toMeshData): PartOutput {
+  const r = num(p, 'lampDiameter') / 2 - 2;
+  const lamp = cylinder(k, 0, cy, baseTop - num(p, 'lampSeatDepth'), 30, r * 0.85, r);
+  return { id: 'lamp', mesh: mesh(lamp), color: '#8fb7ff', explode: [0, 0, 20], printRotation: [0, 0, 0], preview: true, ghost: true };
+}
+
+/** Plate over a lamp socket's drum (table shade, ball on a base), and the drum's wall. */
+export const SOCKET_PLATE = 3;
+export const DRUM_WALL = 2.4;
+
+/**
+ * Hollow under a base for a lamp socket's body: the drum inside a wall of DRUM_WALL within
+ * radius `rOut`, the socket's hole through the plate, and a notch at the back for the cable.
+ */
+export function socketDrumCuts(k: Kernel, baseTop: number, rOut: number, hole: number, rBase: number): Manifold[] {
+  const chamber = cylinder(k, 0, 0, -1, baseTop - SOCKET_PLATE + 1, rOut - DRUM_WALL);
+  const through = cylinder(k, 0, 0, baseTop - SOCKET_PLATE - 1, SOCKET_PLATE + 2, hole / 2);
+  const notch = box(k, [-5, 0, -1], [5, rBase + 1, 8]);
+  return [chamber, through, notch];
 }
 
 /** Lamp seat and steel disc recess, centred on (0, cy), cut down from the base top. */
@@ -122,6 +147,14 @@ export function frontText(k: Kernel, p: ParamValues, y0: number, zc: number, max
   return out;
 }
 
+/** Put base text on `m`: engrave or inlay its cut, add raised text, warn when it had to shrink. */
+export function applyFrontText(m: Manifold, t: FrontText | null, warnings: Message[]): Manifold {
+  if (t?.shrunk) warnings.push({ key: 'warn.textShrunkBase' });
+  if (t?.cut) m = m.subtract(t.cut);
+  if (t?.add) m = m.add(t.add);
+  return m;
+}
+
 /**
  * Base text bent round a curved front: the front surface is a circle of radius `R` round
  * (cx, cy), the text centred where it faces -Y, at height zc. `maxW` is measured along the curve.
@@ -171,9 +204,12 @@ export function slotMatrix(origin: Vec3, xAxis: Vec3, yAxis: Vec3, zAxis: Vec3):
   return [...xAxis, 0, ...yAxis, 0, ...zAxis, 0, ...origin, 1];
 }
 
-/** A round panel's slot matrix: panel x stays x, panel y (the axis) becomes up, the picture's middle faces -Y. */
-export function roundSlotMatrix(z: number): number[] {
-  return [1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, z, 1];
+/**
+ * A round panel's slot matrix: panel x stays x, panel y (the axis) becomes up, the picture's
+ * middle faces -Y. `y` moves it off the axis (the arc's picture sits in front of it).
+ */
+export function roundSlotMatrix(z: number, y = 0): number[] {
+  return [1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, y, z, 1];
 }
 
 /** Ring between two radii, from z0 to z1 (the outside may lean: rOut1 at the top). */

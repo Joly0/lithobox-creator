@@ -1,10 +1,9 @@
 import type { ParamGroup } from '../../core/types';
 import { boxGroups } from '../box/params';
-import { fromBox } from '../common/params';
+import { always, fromBox } from '../common/params';
 
 export const SIDES = ['3', '5', '6', '8'];
 
-const always = () => true;
 const group = (id: string) => boxGroups.find((g) => g.id === id)!;
 const box = (...keys: string[]) => keys.map((k) => fromBox(k, always));
 

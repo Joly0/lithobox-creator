@@ -1,6 +1,6 @@
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { fromBox, keys } from '../common/params';
+import { fromBox, keys, powerGroup } from '../common/params';
 
 export const SHADES = ['cone', 'cylinder'];
 /** Hung from a ceiling socket, or standing on a base with a lamp in it. */
@@ -16,7 +16,6 @@ export const tableSocket = (p: ParamValues) => table(p) && p.tableLamp === 'sock
 const socket = (p: ParamValues) => pendant(p) || tableSocket(p);
 
 const litho = boxGroups.find((g) => g.id === 'litho')!;
-const power = (p: ParamValues) => tablePuck(p) && p.powerBase === true;
 
 export const shadeGroups: ParamGroup[] = [
   {
@@ -61,14 +60,7 @@ export const shadeGroups: ParamGroup[] = [
     id: 'text',
     params: [...keys(table, 'baseText', 'baseTextStyle', 'baseTextSize', 'textFont', 'textDepth'), fromBox('textSecondColor', table)],
   },
-  {
-    // battery tray under a table base with a puck light (as the ball lamp's)
-    id: 'power',
-    params: [
-      ...boxGroups.find((g) => g.id === 'power')!.params.map((d) => fromBox(d.key, tablePuck)),
-      ...['magnetDiameter', 'magnetHeight', 'magnetClearance'].map((k) => fromBox(k, tablePuck, { visibleIf: (p) => power(p) && p.powerJoint === 'magnets' })),
-      fromBox('pegSize', tablePuck, { visibleIf: (p) => power(p) && p.powerJoint === 'pegs' }),
-    ],
-  },
+  // battery tray under a table base with a puck light (as the ball lamp's)
+  powerGroup(tablePuck),
   boxGroups.find((g) => g.id === 'print')!,
 ];

@@ -5,21 +5,16 @@
 //
 // Model space: millimetres, Z up, the ball's axis on x = y = 0, its cut on the floor or in the
 // base, the picture's middle facing -Y.
-import { bool, num, str, type ShapeDefinition } from '../../core/shape';
+import { bool, num, round, type ShapeDefinition, str } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
 import { box, cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
-import { round } from '../box/layout';
-import { cableCuts, cableSlot, curvedText, lampCuts, roundSlotMatrix, type CableSlot } from '../common/base';
+import { applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, lampCuts, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
 import { spherePicture, type SphereProjection } from '../../litho/mesh';
-import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, roundTray, type PowerLayout } from '../common/power';
+import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
 import { basePuck, baseSocket, onBase, sphereGroups, standalone } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
-
-/** Plate over a socket drum, and its wall. */
-const PLATE = 3;
-const DRUM_WALL = 2.4;
 /** Cable hole at the back of a ball standing on its own: radius and height of its middle above the cut. */
 const HOLE_R = 7.5;
 const HOLE_Z = 12;
@@ -96,7 +91,7 @@ export function sphereLayout(p: ParamValues): SphereLayout {
   const picture = spherePicture(projection, [(band[0] + sMid) / rMid, (band[1] + sMid) / rMid], half, rMid, blend, around);
 
   const groove = onBase(p) ? num(p, 'baseGroove') : 0;
-  const baseTop = !onBase(p) ? 0 : baseSocket(p) ? num(p, 'socketRoom') + PLATE : num(p, 'baseHeight');
+  const baseTop = !onBase(p) ? 0 : baseSocket(p) ? num(p, 'socketRoom') + SOCKET_PLATE : num(p, 'baseHeight');
   const cutZ = onBase(p) ? baseTop - groove : 0;
   // the ball's widest point inside the groove: at the groove's top
   const zTopRel = baseTop - cutZ - c;
@@ -138,10 +133,7 @@ function buildBase(k: Kernel, p: ParamValues, L: SphereLayout): Manifold {
   const groove = cylinder(k, 0, 0, L.cutZ, L.groove + 1, outTop + L.gap).subtract(cylinder(k, 0, 0, L.cutZ - 1, L.groove + 3, L.opening - L.gap));
   const base = cylinder(k, 0, 0, 0, L.baseTop, L.rBase);
   if (baseSocket(p)) {
-    const chamber = cylinder(k, 0, 0, -1, L.baseTop - PLATE + 1, L.opening - L.gap - DRUM_WALL);
-    const hole = cylinder(k, 0, 0, L.baseTop - PLATE - 1, PLATE + 2, L.hole / 2);
-    const notch = box(k, [-5, 0, -1], [5, L.rBase + 1, 8]);
-    return base.subtract(k.Manifold.union([groove, chamber, hole, notch]));
+    return base.subtract(k.Manifold.union([groove, ...socketDrumCuts(k, L.baseTop, L.opening - L.gap, L.hole, L.rBase)]));
   }
   const cuts = [groove, ...lampCuts(k, p, 0, L.baseTop), ...cableCuts(k, p, L.cable!, 0, L.baseTop, L.rBase)];
   if (L.power) cuts.push(...powerUnderside(k, p, L.power));
@@ -173,14 +165,8 @@ export const sphereShape: ShapeDefinition = {
       const tr = P ? L.rBase + POWER_WALL + POWER_FIT : L.rBase;
       const arc = ((2 * Math.PI) / 3) * tr - 8;
       const t = P ? curvedText(k, p, 0, 0, tr, powerTextZ(P), arc, P.inner - 4) : curvedText(k, p, 0, 0, L.rBase, L.baseTop / 2, arc, Math.min(L.baseTop - 2, 20));
-      if (t?.shrunk) warnings.push({ key: 'warn.textShrunkBase' });
-      if (tray) {
-        if (t?.cut) tray = tray.subtract(t.cut);
-        if (t?.add) tray = tray.add(t.add);
-      } else {
-        if (t?.cut) base = base.subtract(t.cut);
-        if (t?.add) base = base.add(t.add);
-      }
+      if (tray) tray = applyFrontText(tray, t, warnings);
+      else base = applyFrontText(base, t, warnings);
       parts.push({ id: 'base', mesh: toMeshData(base), color: COLORS.base, explode: [0, 0, 0], printRotation: [0, 0, 0] });
       if (tray) parts.push({ id: 'power', mesh: toMeshData(tray), color: COLORS.power, explode: [0, 0, -70], printRotation: [0, 0, 0] });
       if (t?.volume) parts.push({ id: 'text-base', object: tray ? 'power' : 'base', extruder: 2, mesh: toMeshData(t.volume), color: COLORS.text, explode: [0, 0, 0], printRotation: [0, 0, 0] });
@@ -211,9 +197,7 @@ export const sphereShape: ShapeDefinition = {
 
     // the preview lamp: a bulb in the middle of the ball on a socket from below, or a puck in its seat
     if (basePuck(p)) {
-      const lampR = num(p, 'lampDiameter') / 2 - 2;
-      const lamp = cylinder(k, 0, 0, L.baseTop - num(p, 'lampSeatDepth'), 30, lampR * 0.85, lampR);
-      parts.push({ id: 'lamp', mesh: toMeshData(lamp), color: COLORS.lamp, explode: [0, 0, 20], printRotation: [0, 0, 0], preview: true, ghost: true });
+      parts.push(puckLamp(k, p, 0, L.baseTop));
     } else {
       const [bd, bl] = BULB;
       const z0 = onBase(p) ? L.baseTop : 0;
@@ -232,8 +216,7 @@ export const sphereShape: ShapeDefinition = {
       { key: 'info.sphereDetail' },
     ];
     if (!basePuck(p)) info.push({ key: 'info.shadeHeat' });
-    if (P) info.push({ key: 'info.power', vars: { t: round(P.inner - 1) } });
-    if (P && str(p, 'powerJoint') === 'magnets') info.push({ key: 'info.powerMagnets', vars: { d: num(p, 'magnetDiameter'), h: num(p, 'magnetHeight') } });
+    pushPowerInfo(info, P, p);
     return { parts, slots: backPhoto ? [slot, { ...slot, id: 'back', pictureOf: 'round' }] : [slot], warnings, info };
   },
 };

@@ -4,7 +4,7 @@
 // Model space: millimetres, Z up, box centred on x = y = 0, standing on z = 0.
 // Front/back panels run along X ("width"), left/right panels along Y.
 // The cable leaves towards +Y (the back).
-import { bool, num, str } from '../../core/shape';
+import { bool, num, round, str } from '../../core/shape';
 import type { Message, ParamValues } from '../../core/types';
 import { cableSlot, type CableSlot } from '../common/base';
 import { jointLayout, type LidJoint } from '../common/lid';
@@ -148,4 +148,3 @@ export function boxLayout(p: ParamValues): BoxLayout {
   };
 }
 
-export const round = (v: number, d = 1) => Math.round(v * 10 ** d) / 10 ** d;

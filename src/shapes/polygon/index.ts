@@ -5,14 +5,13 @@
 //
 // Model space: millimetres, Z up, centred on x = y = 0, standing on z = 0. Side 1 faces -Y
 // (the front), the others follow anticlockwise seen from above. The cable leaves towards +Y.
-import { bool, num, str, type ShapeDefinition } from '../../core/shape';
+import { bool, num, round, type ShapeDefinition, str } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
-import { box, cylinder, prism, toMeshData, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
-import { round } from '../box/layout';
-import { cableCuts, cableSlot, frontText, lampCuts, lidText, slotMatrix, type CableSlot } from '../common/base';
+import { box, prism, toMeshData, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
+import { applyFrontText, cableCuts, cableSlot, type CableSlot, frontText, lampCuts, lidText, puckLamp, slotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
-import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, type PowerLayout } from '../common/power';
-import { jointGeometry, jointLayout, type JointGeometry, type JointLayout, type LatchFace, type Socket } from '../common/lid';
+import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
+import { applyLidJoint, jointGeometry, type JointGeometry, jointLayout, type JointLayout, type LatchFace, type Socket } from '../common/lid';
 import { polygonGroups } from './params';
 
 const COLORS = { body: '#c9ccd3', lid: '#e9a23b', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -265,8 +264,7 @@ function buildLid(k: Kernel, p: ParamValues, L: PolygonLayout, joint: JointGeome
     cuts.push(prism(outline(k, L, L.topR - num(p, 'topLedge'), 1), L.lidBottom - 1, L.lidTop + 1));
   } else cuts.push(prism(outline(k, L, lidOpening(L), Math.max(1, r - 2)), L.lidBottom - 1, L.lidTop + 1));
   lid = lid.subtract(k.Manifold.union(cuts));
-  if (joint.lidAdds.length) lid = lid.add(k.Manifold.union(joint.lidAdds));
-  if (joint.lidCuts.length) lid = lid.subtract(k.Manifold.union(joint.lidCuts));
+  lid = applyLidJoint(k, lid, joint);
   return lid;
 }
 
@@ -327,14 +325,8 @@ export const polygonShape: ShapeDefinition = {
     const base = P
       ? frontText(k, p, -trayA, powerTextZ(P), side(trayA) - 2 * (r + POWER_WALL + POWER_FIT) - 8, P.inner - 4)
       : frontText(k, p, -L.apothem, L.baseTop / 2, side(L.apothem) - 2 * r - 8, L.baseTop - 2);
-    if (base?.shrunk) warnings.push({ key: 'warn.textShrunkBase' });
-    if (tray) {
-      if (base?.cut) tray = tray.subtract(base.cut);
-      if (base?.add) tray = tray.add(base.add);
-    } else {
-      if (base?.cut) body = body.subtract(base.cut);
-      if (base?.add) body = body.add(base.add);
-    }
+    if (tray) tray = applyFrontText(tray, base, warnings);
+    else body = applyFrontText(body, base, warnings);
     // (round the top picture's rebate when there is one)
     const open = L.topR ? L.topR + L.gap : lidOpening(L);
     const mid = (L.apothem + open) / 2;
@@ -362,17 +354,14 @@ export const polygonShape: ShapeDefinition = {
       const stand = prism(outline(k, L, L.topR), z1 - L.thick, z1);
       parts.push({ id: 'panel-top', mesh: toMeshData(stand), color: COLORS.panel, explode: [0, 0, 110], printRotation: [0, 0, 0], preview: true, ghost: true });
     }
-    const lampR = num(p, 'lampDiameter') / 2 - 2;
-    const lamp = cylinder(k, 0, 0, L.baseTop - num(p, 'lampSeatDepth'), 30, lampR * 0.85, lampR);
-    parts.push({ id: 'lamp', mesh: toMeshData(lamp), color: COLORS.lamp, explode: [0, 0, 20], printRotation: [0, 0, 0], preview: true, ghost: true });
+    parts.push(puckLamp(k, p, 0, L.baseTop));
 
     const info: Message[] = [
       { key: 'info.outer', vars: { x: round(L.power?.outerX ?? L.sizeX), y: round(L.power?.outerY ?? L.sizeY), z: round(L.lidTop + (L.power ? L.power.height - L.power.seat : 0)) } },
       { key: 'info.polygon', vars: { n: L.n, w: L.panelW, h: L.panelH, t: L.thick, f: round(2 * L.apothem), c: round((2 * L.apothem) / Math.cos(L.phi)) } },
     ];
     if (L.joint.magnetsFit) info.push({ key: 'info.magnets', vars: { n: 2 * L.n, d: num(p, 'magnetDiameter'), h: num(p, 'magnetHeight') } });
-    if (L.power) info.push({ key: 'info.power', vars: { t: round(L.power.inner - 1) } });
-    if (L.power && str(p, 'powerJoint') === 'magnets') info.push({ key: 'info.powerMagnets', vars: { d: num(p, 'magnetDiameter'), h: num(p, 'magnetHeight') } });
+    pushPowerInfo(info, L.power, p);
     return { parts, slots, warnings, info };
   },
 };

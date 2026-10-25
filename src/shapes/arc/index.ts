@@ -5,13 +5,12 @@
 // Model space: millimetres, Z up, standing on z = 0, the picture's middle facing -Y. Parts are
 // built round the curve's axis (x = y = 0, behind the picture), then moved by `shift` so the
 // footprint's middle is on the origin like the other shapes.
-import { bool, num, str, type ShapeDefinition } from '../../core/shape';
+import { bool, num, round, type ShapeDefinition, str } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
 import { box, cylinder, prism, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
-import { round } from '../box/layout';
-import { cableCuts, cableSlot, curvedText, lampCuts, type CableSlot } from '../common/base';
+import { applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, lampCuts, puckLamp, roundSlotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
-import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, type PowerLayout } from '../common/power';
+import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
 import { arcGroups, withBase } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -176,11 +175,6 @@ function buildFeet(k: Kernel, L: ArcLayout): Manifold {
   return k.Manifold.union(feet).subtract(grooveCut(k, L));
 }
 
-function slotMatrix(y: number, z: number): number[] {
-  // panel x stays x, panel y (the axis) becomes up, the picture's middle faces -Y
-  return [1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, y, z, 1];
-}
-
 export const arcShape: ShapeDefinition = {
   id: 'arc',
   groups: arcGroups,
@@ -211,14 +205,8 @@ export const arcShape: ShapeDefinition = {
       const tr = P ? rG + grow : rG;
       const along = 2 * tr * Math.asin(Math.min(1, (L.xHalf + (P ? grow : 0)) / tr)) - 8;
       const t = P ? curvedText(k, p, 0, 0, tr, powerTextZ(P), along, P.inner - 4) : curvedText(k, p, 0, 0, rG, L.baseTop / 2, along, L.baseTop - 2);
-      if (t?.shrunk) warnings.push({ key: 'warn.textShrunkBase' });
-      if (tray) {
-        if (t?.cut) tray = tray.subtract(t.cut);
-        if (t?.add) tray = tray.add(t.add);
-      } else {
-        if (t?.cut) base = base.subtract(t.cut);
-        if (t?.add) base = base.add(t.add);
-      }
+      if (tray) tray = applyFrontText(tray, t, warnings);
+      else base = applyFrontText(base, t, warnings);
       parts.push({ id: 'base', mesh: mesh(base), color: COLORS.base, explode: [0, 0, 0], printRotation: [0, 0, 0] });
       if (tray) parts.push({ id: 'power', mesh: mesh(tray), color: COLORS.power, explode: [0, 0, -70], printRotation: [0, 0, 0] });
       if (t?.volume) parts.push({ id: 'text-base', object: tray ? 'power' : 'base', extruder: 2, mesh: mesh(t.volume), color: COLORS.text, explode: [0, 0, 0], printRotation: [0, 0, 0] });
@@ -226,13 +214,11 @@ export const arcShape: ShapeDefinition = {
     else parts.push({ id: 'feet', mesh: mesh(buildFeet(k, L)), color: COLORS.base, explode: [0, 0, 0], printRotation: [0, 0, 0] });
 
     const zc = (L.panelBottom + L.panelTop) / 2;
-    const slot: PanelSlot = { id: 'arc', width: L.width, height: L.height, thickness: L.thick, matrix: slotMatrix(shift, zc), wrap: { radius: L.rIn, open: true } };
+    const slot: PanelSlot = { id: 'arc', width: L.width, height: L.height, thickness: L.thick, matrix: roundSlotMatrix(zc, shift), wrap: { radius: L.rIn, open: true } };
     const stand = sector(k, L.rIn, L.rOut, -L.half, L.half, L.panelBottom, L.panelTop);
     parts.push({ id: 'panel-arc', mesh: mesh(stand), color: COLORS.panel, explode: [0, 0, 60], printRotation: [0, 0, 0], preview: true, ghost: true });
     if (L.lampY !== null) {
-      const lampR = num(p, 'lampDiameter') / 2 - 2;
-      const lamp = cylinder(k, 0, L.lampY, L.baseTop - num(p, 'lampSeatDepth'), 30, lampR * 0.85, lampR);
-      parts.push({ id: 'lamp', mesh: mesh(lamp), color: COLORS.lamp, explode: [0, 0, 20], printRotation: [0, 0, 0], preview: true, ghost: true });
+      parts.push(puckLamp(k, p, L.lampY, L.baseTop, mesh));
     }
 
     const depth = back + rG;
@@ -240,8 +226,7 @@ export const arcShape: ShapeDefinition = {
       { key: 'info.outer', vars: { x: round(L.power?.outerX ?? 2 * L.xHalf), y: round(L.power?.outerY ?? depth), z: round(L.panelTop + (L.power ? L.power.height - L.power.seat : 0)) } },
       { key: 'info.arc', vars: { w: round(L.width), h: round(L.height), t: L.thick, r: round(L.rOut), a: Math.round((2 * L.half * 180) / Math.PI) } },
     ];
-    if (L.power) info.push({ key: 'info.power', vars: { t: round(L.power.inner - 1) } });
-    if (L.power && str(p, 'powerJoint') === 'magnets') info.push({ key: 'info.powerMagnets', vars: { d: num(p, 'magnetDiameter'), h: num(p, 'magnetHeight') } });
+    pushPowerInfo(info, L.power, p);
     return { parts, slots: [slot], warnings, info };
   },
 };

@@ -2,14 +2,14 @@
 // lid and an optional power base underneath. Panels slide into slots in the
 // posts and stand in grooves in the base. The lid closes with one of several
 // joints (see LID_JOINTS).
-import { bool, num, str, type ShapeDefinition } from '../../core/shape';
+import { bool, num, round, type ShapeDefinition, str } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput, Vec3 } from '../../core/types';
-import { box, cylinder, prism, roundedRect, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
+import { box, prism, roundedRect, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
-import { cableCuts, fitText, frontText, lampCuts, slotMatrix } from '../common/base';
-import { jointGeometry, type JointGeometry } from '../common/lid';
-import { powerUnderside, rectTray } from '../common/power';
-import { boxLayout, round, type BoxLayout } from './layout';
+import { cableCuts, fitText, frontText, lampCuts, puckLamp, slotMatrix } from '../common/base';
+import { applyLidJoint, jointGeometry, type JointGeometry } from '../common/lid';
+import { powerUnderside, pushPowerInfo, rectTray } from '../common/power';
+import { boxLayout, type BoxLayout } from './layout';
 import { boxGroups } from './params';
 
 const COLORS = { body: '#c9ccd3', lid: '#e9a23b', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -75,8 +75,7 @@ function buildLid(k: Kernel, p: ParamValues, L: BoxLayout, joint: JointGeometry)
     cuts.push(prism(roundedRect(k, L.topW - 2 * ledge, L.topD - 2 * ledge, 1), L.lidBottom - 1, L.lidTop + 1));
   }
   lid = lid.subtract(k.Manifold.union(cuts));
-  if (joint.lidAdds.length) lid = lid.add(k.Manifold.union(joint.lidAdds));
-  if (joint.lidCuts.length) lid = lid.subtract(k.Manifold.union(joint.lidCuts));
+  lid = applyLidJoint(k, lid, joint);
   return lid;
 }
 
@@ -179,9 +178,7 @@ function previewParts(k: Kernel, p: ParamValues, L: BoxLayout, slots: PanelSlot[
     const out: Vec3 = [m[8] * 70, m[9] * 70, s.id === 'top' ? 110 : 0];
     parts.push({ id: `panel-${s.id}`, mesh: toMeshData(solid), color: COLORS.panel, explode: out, printRotation: [0, 0, 0], preview: true, ghost: true });
   }
-  const lampR = num(p, 'lampDiameter') / 2 - 2;
-  const lamp = cylinder(k, 0, 0, L.baseTop - num(p, 'lampSeatDepth'), 30, lampR * 0.85, lampR);
-  parts.push({ id: 'lamp', mesh: toMeshData(lamp), color: COLORS.lamp, explode: [0, 0, 20], printRotation: [0, 0, 0], preview: true, ghost: true });
+  parts.push(puckLamp(k, p, 0, L.baseTop));
   return parts;
 }
 
@@ -224,8 +221,7 @@ export const boxShape: ShapeDefinition = {
     ];
     if (bool(p, 'topPanel')) info.push({ key: 'info.top', vars: { w: L.topW, d: L.topD, t: L.thick } });
     if (L.magnetsFit) info.push({ key: 'info.magnets', vars: { n: 8, d: num(p, 'magnetDiameter'), h: num(p, 'magnetHeight') } });
-    if (L.power) info.push({ key: 'info.power', vars: { t: round(L.power.inner - 1) } });
-    if (L.power && str(p, 'powerJoint') === 'magnets') info.push({ key: 'info.powerMagnets', vars: { d: num(p, 'magnetDiameter'), h: num(p, 'magnetHeight') } });
+    pushPowerInfo(info, L.power, p);
     return { parts, slots, warnings: [...L.warnings, ...text.warnings], info };
   },
 };

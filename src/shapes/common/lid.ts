@@ -4,14 +4,13 @@
 //
 // A shape says where its posts have room: a square socket per post (centre, turn about Z) and
 // a flat outer face per post for a latch arm (a point on the face, its outward direction).
-import { num, str } from '../../core/shape';
+import { num, round, str } from '../../core/shape';
 import type { Message, ParamValues } from '../../core/types';
 import { box, cylinder, roundedRect, squareFrustum, type Kernel, type Manifold } from '../../geometry/kernel';
 
 export type LidJoint = 'plugMagnet' | 'plug' | 'magnet' | 'latch' | 'pegs';
 
 const MAGNET_WALL = 0.7; // plug wall around a magnet pocket
-const round = (v: number) => Math.round(v * 10) / 10;
 
 /** Sizes of the closure, shared by every post. */
 export interface JointLayout {
@@ -95,6 +94,13 @@ export interface JointGeometry {
   bodyAdds: Manifold[];
   lidCuts: Manifold[];
   lidAdds: Manifold[];
+}
+
+/** The lid's side of the joint: its plugs or latch arms added, its sockets cut. */
+export function applyLidJoint(k: Kernel, lid: Manifold, joint: JointGeometry): Manifold {
+  if (joint.lidAdds.length) lid = lid.add(k.Manifold.union(joint.lidAdds));
+  if (joint.lidCuts.length) lid = lid.subtract(k.Manifold.union(joint.lidCuts));
+  return lid;
 }
 
 export function jointGeometry(k: Kernel, p: ParamValues, J: JointLayout, sockets: Socket[], latches: LatchFace[]): JointGeometry {
