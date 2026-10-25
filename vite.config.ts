@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -9,5 +10,9 @@ export default defineConfig({
     // Wait until a changed file has stopped growing before reloading it: scripted edits
     // otherwise get picked up half-written (an empty stylesheet, for example).
     watch: { awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 } },
+  },
+  test: {
+    // the geometry tests build whole lamps: slow on shared CI runners
+    testTimeout: 60000,
   },
 });
