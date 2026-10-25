@@ -447,6 +447,7 @@
   "info.shade": "Pantalla: Ø {top} mm arriba, Ø {bottom} mm abajo, {h} mm de alto, {t} mm de grosor; la imagen da {w} mm de vuelta",
   "info.shadeHeat": "Solo bombillas LED, como mucho unos 10 W: el PLA se ablanda desde unos 55 °C.",
   "warn.shadeSteep": "Al imprimir, la pared se inclina {deg}° hacia fuera al subir. Por encima de 45° necesita soportes: acerca los dos diámetros o haz la pantalla más alta.",
+  "warn.shadeThick": "La pared es demasiado gruesa para el extremo estrecho de la pantalla, así que se ha reducido a {max} mm. Ensancha el extremo estrecho o haz la pantalla más alta para mantener todo el grosor.",
   "warn.spiderNoFit": "Arriba la pantalla es demasiado estrecha para el aro con radios de este portalámparas. Aumenta el diámetro de arriba o usa E14.",
   "shape.sphere.name": "Lámpara de bola",
   "shape.sphere.group.panels": "Bola",

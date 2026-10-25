@@ -447,6 +447,7 @@
   "info.shade": "Abat-jour : Ø {top} mm en haut, Ø {bottom} mm en bas, {h} mm de haut, {t} mm d'épaisseur ; l'image fait {w} mm de tour",
   "info.shadeHeat": "Uniquement des ampoules LED, environ 10 W au plus : le PLA ramollit dès environ 55 °C.",
   "warn.shadeSteep": "La paroi penche de {deg}° vers l'extérieur en montant pendant l'impression. Au-delà de 45° il faut des supports : rapprochez les deux diamètres ou rendez l'abat-jour plus haut.",
+  "warn.shadeThick": "La paroi est trop épaisse pour l'extrémité étroite de l'abat-jour : elle a été amincie à {max} mm. Élargissez l'extrémité étroite ou rendez l'abat-jour plus haut pour garder toute l'épaisseur.",
   "warn.spiderNoFit": "Le haut est trop étroit pour l'anneau à rayons autour de cette douille. Agrandissez le diamètre du haut ou choisissez E14.",
   "shape.sphere.name": "Lampe boule",
   "shape.sphere.group.panels": "Boule",

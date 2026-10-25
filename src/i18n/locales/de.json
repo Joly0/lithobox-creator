@@ -447,6 +447,7 @@
   "info.shade": "Schirm: oben Ø {top} mm, unten Ø {bottom} mm, {h} mm hoch, {t} mm dick; das Bild läuft {w} mm rundum",
   "info.shadeHeat": "Nur LED-Leuchtmittel bis etwa 10 W: PLA wird ab etwa 55 °C weich.",
   "warn.shadeSteep": "Die Wand neigt sich beim Drucken nach oben um {deg}° nach außen. Über 45° braucht sie Stützen: Bring die beiden Durchmesser näher zusammen oder mach den Schirm höher.",
+  "warn.shadeThick": "Die Wand ist für das schmale Ende des Schirms zu dick und wurde auf {max} mm verdünnt. Mach das schmale Ende breiter oder den Schirm höher, um die volle Dicke zu behalten.",
   "warn.spiderNoFit": "Oben ist der Schirm zu schmal für den Speichenring um diese Fassung. Wähle oben einen größeren Durchmesser oder E14.",
   "shape.sphere.name": "Kugellampe",
   "shape.sphere.group.panels": "Kugel",

@@ -447,6 +447,7 @@
   "info.shade": "Shade: Ø {top} mm at the top, Ø {bottom} mm at the bottom, {h} mm high, {t} mm thick; the picture runs {w} mm round",
   "info.shadeHeat": "Only LED bulbs, at most about 10 W: PLA softens from about 55 °C.",
   "warn.shadeSteep": "The wall leans out {deg}° on the way up as it prints. Above 45° it needs supports: make the two diameters closer or the shade taller.",
+  "warn.shadeThick": "The wall is too thick for the narrow end of the shade, so it was thinned to {max} mm. Make the narrow end wider or the shade taller to keep the full thickness.",
   "warn.spiderNoFit": "The top is too narrow for the spider ring round this socket. Make the top diameter larger or use E14.",
   "shape.sphere.name": "Ball lamp",
   "shape.sphere.group.panels": "Ball",

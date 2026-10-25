@@ -60,12 +60,18 @@ export interface ShadeLayout {
 
 export function shadeLayout(p: ParamValues): ShadeLayout {
   const warnings: Message[] = [];
-  const thick = num(p, 'panelThickness');
   const height = num(p, 'panelHeight');
   const rTo = num(p, 'topDiameter') / 2;
   const rBo = cone(p) ? num(p, 'bottomDiameter') / 2 : rTo;
   const slope = (rTo - rBo) / height;
   const sl = Math.sqrt(1 + slope * slope);
+  // a steep cone with a narrow end would get an inside radius at or past the centre
+  const maxThick = (Math.min(rTo, rBo) - 1) / sl;
+  let thick = num(p, 'panelThickness');
+  if (thick > maxThick) {
+    thick = maxThick;
+    warnings.push({ key: 'warn.shadeThick', vars: { max: round(maxThick) } });
+  }
   // the wall is `thick` at right angles to it: a little more measured across
   const rTi = rTo - thick * sl, rBi = rBo - thick * sl;
   const gap = num(p, 'slotClearance') / 2;

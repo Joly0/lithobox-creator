@@ -447,6 +447,7 @@
   "info.shade": "Paralume: Ø {top} mm in alto, Ø {bottom} mm in basso, {h} mm di altezza, {t} mm di spessore; l'immagine gira per {w} mm",
   "info.shadeHeat": "Solo lampadine LED, al massimo circa 10 W: il PLA si ammorbidisce da circa 55 °C.",
   "warn.shadeSteep": "In stampa la parete si inclina di {deg}° verso l'esterno salendo. Oltre 45° servono supporti: avvicina i due diametri o rendi il paralume più alto.",
+  "warn.shadeThick": "La parete è troppo spessa per l'estremità stretta del paralume, quindi è stata assottigliata a {max} mm. Allarga l'estremità stretta o rendi il paralume più alto per mantenere lo spessore pieno.",
   "warn.spiderNoFit": "In alto il paralume è troppo stretto per l'anello a raggi di questo portalampada. Aumenta il diametro superiore o usa E14.",
   "shape.sphere.name": "Lampada a sfera",
   "shape.sphere.group.panels": "Sfera",

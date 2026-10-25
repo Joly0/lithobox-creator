@@ -83,7 +83,9 @@ export function sphereLayout(p: ParamValues): SphereLayout {
   // the band stays clear of the cut's margin and below the pole
   const b0 = Math.max(deg('bandBottom'), edge + m), b1 = Math.min(deg('bandTop'), length / 2 - 2);
   if (b1 - b0 < 10) warnings.push({ key: 'warn.sphereBand' });
-  const band: [number, number] = [b0, Math.max(b1, b0 + 10)];
+  // widening a narrow band must not push it past the pole, where the conformal map is NaN
+  const top = Math.min(Math.max(b1, b0 + 10), length / 2 - 2);
+  const band: [number, number] = [Math.min(b0, top - 10), top];
   const projection = str(p, 'projection') as SphereProjection;
   const half = ((num(p, 'frontWidth') / 2) * Math.PI) / 180;
   // the slider means the same for both: 0 % true from in front of the middle, 100 % natural from
