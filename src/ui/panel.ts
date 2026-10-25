@@ -87,12 +87,29 @@ export class ParamPanel {
     lab.textContent = t(shapeKey(s, `param.${def.key}`));
     const helpKey = shapeKey(s, `param.${def.key}.help`);
     if (has(helpKey)) {
-      const h = document.createElement('span');
+      // a tooltip on hover; a click or tap (touch screens have no hover) shows the text under
+      // the setting. It must not reach the label, which would focus the setting's input.
+      const h = document.createElement('button');
+      h.type = 'button';
       h.className = 'help';
-      h.tabIndex = 0;
       h.textContent = '?';
       h.title = t(helpKey);
       h.setAttribute('aria-label', t(helpKey));
+      h.setAttribute('aria-expanded', 'false');
+      h.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const row = h.closest('.prow')!;
+        const open = row.querySelector(':scope > .phelp');
+        if (open) open.remove();
+        else {
+          const text = document.createElement('p');
+          text.className = 'hint phelp';
+          text.textContent = t(helpKey);
+          row.append(text);
+        }
+        h.setAttribute('aria-expanded', String(!open));
+      });
       lab.append(h);
     }
     return lab;

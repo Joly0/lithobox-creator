@@ -113,6 +113,11 @@ details.group:not([open]) > summary::after { content: '▸'; }
 .plabel { display: flex; align-items: center; gap: 6px; color: var(--fg); font-size: 13px; }
 .prow-number .plabel, .prow-select .plabel { margin-bottom: 3px; color: var(--muted); }
 .help { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--line); font-size: 10px; color: var(--muted); cursor: help; }
+button.help { background: none; padding: 0; line-height: inherit; }
+.help[aria-expanded='true'] { border-color: var(--accent); color: var(--accent); }
+/* a setting's help text, shown under it after a click on its "?" */
+.phelp { margin: 4px 0 2px; flex-basis: 100%; }
+.prow-bool:has(> .phelp) { flex-wrap: wrap; }
 .pnum { display: grid; grid-template-columns: 1fr 72px 28px; align-items: center; gap: 8px; }
 .pnum input[type='number'] { width: 100%; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); text-align: right; }
 .unit { color: var(--muted); font-size: 12px; }
@@ -169,6 +174,8 @@ body.busy .status::before { content: ''; width: 8px; height: 8px; border-radius:
   .top-actions { gap: 6px; flex-shrink: 0; }
   .top-actions .btn { display: inline-grid; place-items: center; width: 34px; height: 32px; padding: 0; }
   .top-actions .btn-text { display: none; }
+  /* a bigger "?" to tap */
+  .help { width: 22px; height: 22px; font-size: 12px; }
   .ico { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   #lang { height: 32px; }
   .layout { display: flex; flex-direction: column; }
