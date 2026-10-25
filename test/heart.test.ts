@@ -74,3 +74,35 @@ describe('flat picture on its own', () => {
     });
   });
 });
+
+describe('heart on the stand', () => {
+  it('stands in a groove of its own shape: no room to slide sideways', async () => {
+    const { k, r, litho } = await build(heartShape, { lighting: 'stand' });
+    withScope(() => {
+      const heart = placed(k, litho);
+      const foot = placed(k, r.parts.find((x) => x.id === 'base')!);
+      expect(heart.intersect(foot).volume(), 'fits').toBeLessThan(1e-3);
+      // the old groove was as wide as the heart: some 45 mm of play each side at the foot
+      for (const dx of [-1, 1]) expect(heart.translate([dx, 0, 0]).intersect(foot).volume(), `held at ${dx} mm`).toBeGreaterThan(0.1);
+    });
+  });
+});
+
+describe('heart on the open foot', () => {
+  it('stands in a heart-shaped groove with the puck lying behind it', async () => {
+    const { k, r, litho } = await build(heartShape, { lighting: 'base' });
+    expect(r.warnings.map((w) => w.key)).toEqual([]);
+    withScope(() => {
+      const heart = placed(k, litho);
+      const base = placed(k, r.parts.find((x) => x.id === 'base')!);
+      const solids = r.parts.filter((x) => !x.preview && !x.id.startsWith('litho-') && x.id !== 'loop').map((x) => placed(k, x));
+      for (const s of solids) expect(heart.intersect(s).volume(), 'apart').toBeLessThan(1e-3);
+      expect(heart.translate([0, 0, -0.5]).intersect(base).volume(), 'rests in the groove').toBeGreaterThan(0.1);
+      for (const dx of [-1, 1]) expect(heart.translate([dx, 0, 0]).intersect(base).volume(), `held at ${dx} mm`).toBeGreaterThan(0.1);
+      const lamp = r.parts.find((x) => x.id === 'lamp')!;
+      expect(lamp).toBeDefined();
+      // the heart faces -Y: the puck lies behind it
+      expect(placed(k, lamp).boundingBox().min[1], 'puck behind the heart').toBeGreaterThan(heart.boundingBox().max[1]);
+    });
+  });
+});

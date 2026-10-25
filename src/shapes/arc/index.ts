@@ -11,9 +11,11 @@ import { box, cylinder, prism, toMeshData, type Kernel, type Manifold } from '..
 import { applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, lampCuts, puckLamp, roundSlotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
 import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
-import { arcGroups, withBase } from './params';
+import { FIT, SOCKET_FLOOR } from '../panel/layout';
+import { buildHolder, cylY, type HolderDims, tenon } from '../panel/stand';
+import { arcGroups, withBase, withFoot, withStand } from './params';
 
-const COLORS = { base: '#c9ccd3', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
+const COLORS = { base: '#c9ccd3', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150', holder: '#e9a23b' };
 
 /** Without a base: each foot holds this much of the arc's ends, and its floor under the groove. */
 const FOOT = 25;
@@ -45,6 +47,8 @@ export interface ArcLayout {
   yBack: number;
   /** Lamp centre (on x = 0); null without a base. */
   lampY: number | null;
+  /** The stand's upright holder (the flat stand's sizes, in the arc's coordinates); null without it. */
+  holder: { w: number; front: number; back: number; lampZ: number; top: number } | null;
   cable: CableSlot | null;
   /** Battery tray under the base, following its outline. */
   power: PowerLayout | null;
@@ -70,7 +74,8 @@ export function arcLayout(p: ParamValues): ArcLayout {
   }
   const halfGroove = half + gap / rMid;
   const base = withBase(p);
-  const baseTop = base ? num(p, 'baseHeight') : groove + FLOOR;
+  const stand = withStand(p);
+  const baseTop = base || stand ? num(p, 'baseHeight') : groove + FLOOR;
   const panelBottom = baseTop - groove;
 
   // the groove's ends, with a rim round them
@@ -78,6 +83,7 @@ export function arcLayout(p: ParamValues): ArcLayout {
   const xHalf = Math.min(rG, (rOut + gap) * Math.sin(halfGroove) + rim);
   let yBack = -(rIn - gap) * Math.cos(halfGroove) + rim;
   let lampY: number | null = null;
+  let holder: ArcLayout['holder'] = null;
   let cable: CableSlot | null = null;
   if (base) {
     if (groove + num(p, 'lampSeatDepth') > baseTop - 1) warnings.push({ key: 'warn.baseTooThin' });
@@ -89,6 +95,21 @@ export function arcLayout(p: ParamValues): ArcLayout {
     if (2 * lampR > room) warnings.push({ key: 'warn.lampTooBig', vars: { max: round(room) } });
     yBack = Math.max(yBack, lampY + lampR + BACK_WALL);
     cable = cableSlot(p, yBack - lampY - 2, warnings);
+  } else if (stand) {
+    // the flat stand's upright holder behind the picture's middle, inside the curve
+    const lampR = num(p, 'lampDiameter') / 2;
+    const wall = num(p, 'wallThickness');
+    const floor = bool(p, 'steelDisc') ? Math.max(wall, num(p, 'discDepth') + 1.2) : wall;
+    const w = 2 * (lampR + wall);
+    const front = -(rIn - gap - num(p, 'lampDistance'));
+    const back = front + num(p, 'holderDepth') + floor;
+    const lampZ = Math.max((panelBottom + panelBottom + height) / 2, baseTop + lampR + wall);
+    holder = { w, front, back, lampZ, top: lampZ + lampR + wall };
+    yBack = Math.max(yBack, back + BACK_WALL);
+    if (groove > baseTop - 1 || baseTop < SOCKET_FLOOR + 3) warnings.push({ key: 'warn.baseTooThin' });
+    // the holder's front corners must stay inside the curve's inner surface, between its ends
+    const corner = Math.hypot(w / 2, front);
+    if (corner > rIn - gap - 1 || w / 2 > corner * Math.sin(half)) warnings.push({ key: 'warn.holderTooBig' });
   }
   let power: PowerLayout | null = null;
   if (base && bool(p, 'powerBase')) {
@@ -108,7 +129,7 @@ export function arcLayout(p: ParamValues): ArcLayout {
       baseTop,
     }, warnings);
   }
-  return { rOut, rIn, rMid, thick, gap, groove, rim, width, height, half, halfGroove, baseTop, panelBottom, panelTop: panelBottom + height, xHalf, yBack, lampY, cable, power, warnings };
+  return { rOut, rIn, rMid, thick, gap, groove, rim, width, height, half, halfGroove, baseTop, panelBottom, panelTop: panelBottom + height, xHalf, yBack, lampY, holder, cable, power, warnings };
 }
 
 /** Wedge from the axis, between angles a0 and a1 (0 = straight towards -Y, positive = +x). */
@@ -163,6 +184,13 @@ function buildBase(k: Kernel, p: ParamValues, L: ArcLayout): Manifold {
   return outline.subtract(k.Manifold.union(cuts));
 }
 
+/** The stand's foot: the base's curved outline minus the groove; the holder plugs into a socket. */
+function buildStandFoot(k: Kernel, p: ParamValues, L: ArcLayout, S: HolderDims): Manifold {
+  const rG = L.rOut + L.gap + L.rim;
+  const outline = cylinder(k, 0, 0, 0, L.baseTop, rG).intersect(box(k, [-L.xHalf, -rG - 1, -1], [L.xHalf, L.yBack, L.baseTop + 1]));
+  return outline.subtract(k.Manifold.union([grooveCut(k, L), tenon(k, p, S, FIT / 2)]));
+}
+
 /** Without a base: a short block under each end of the arc. */
 function buildFeet(k: Kernel, L: ArcLayout): Manifold {
   const r0 = L.rIn - L.gap - L.rim, r1 = L.rOut + L.gap + L.rim;
@@ -185,18 +213,37 @@ export const arcShape: ShapeDefinition = {
   ],
   validate: (p) => arcLayout(p).warnings,
   async prepare(p) {
-    if (withBase(p) && str(p, 'baseText').trim()) await ensureFont(str(p, 'textFont'));
+    if (withFoot(p) && str(p, 'baseText').trim()) await ensureFont(str(p, 'textFont'));
   },
   build(k, p): BuildResult {
     const L = arcLayout(p);
     const rG = L.rOut + L.gap + L.rim;
     // from the front of the curve to the back of the base or the feet
-    const back = withBase(p) ? L.yBack : -(L.rIn - L.gap - L.rim) * Math.cos(L.halfGroove);
+    const back = withFoot(p) ? L.yBack : -(L.rIn - L.gap - L.rim) * Math.cos(L.halfGroove);
     const shift = (rG - back) / 2;
     const mesh = (m: Manifold) => toMeshData(m.translate([0, shift, 0]));
     const parts: PartOutput[] = [];
     const warnings = [...L.warnings];
-    if (withBase(p)) {
+    if (withStand(p)) {
+      // the flat stand's upright holder behind the picture, plugged into the curved foot
+      const H = L.holder!;
+      const S: HolderDims = { holderW: H.w, holderFront: H.front, holderBack: H.back, lampZ: H.lampZ, baseTop: L.baseTop };
+      let foot = buildStandFoot(k, p, L, S);
+      // text bent along the foot's curved front, as on the base
+      const along = 2 * rG * Math.asin(Math.min(1, L.xHalf / rG)) - 8;
+      const t = curvedText(k, p, 0, 0, rG, L.baseTop / 2, along, L.baseTop - 2);
+      foot = applyFrontText(foot, t, warnings);
+      parts.push({ id: 'base', mesh: mesh(foot), color: COLORS.base, explode: [0, 0, 0], printRotation: [0, 0, 0] });
+      // printed on its back, the cup facing up
+      parts.push({ id: 'holder', mesh: mesh(buildHolder(k, p, S)), color: COLORS.holder, explode: [0, 30, 40], printRotation: [-90, 0, 0] });
+      if (t?.volume) parts.push({ id: 'text-base', object: 'base', extruder: 2, mesh: mesh(t.volume), color: COLORS.text, explode: [0, 0, 0], printRotation: [0, 0, 0] });
+      // a puck light standing upright in the cup, its face a little in front of the holder
+      const seat = num(p, 'holderDepth');
+      const lampR = num(p, 'lampDiameter') / 2 - 2;
+      const lampFront = H.front + seat - Math.min(16, seat + num(p, 'lampDistance') - 2);
+      const lamp = cylY(k, 0, lampFront, H.front + seat, H.lampZ, lampR);
+      parts.push({ id: 'lamp', mesh: mesh(lamp), color: COLORS.lamp, explode: [0, 30, 40], printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, lampFront + shift, H.lampZ] });
+    } else if (withBase(p)) {
       let base = buildBase(k, p, L);
       const P = L.power;
       let tray = P ? buildTray(k, p, L, P) : null;

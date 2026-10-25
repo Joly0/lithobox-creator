@@ -12,23 +12,45 @@ export function cylY(k: Kernel, x: number, y0: number, y1: number, z: number, r:
   return cylinder(k, 0, 0, 0, y1 - y0, r).rotate([-90, 0, 0]).translate([x, y0, z]);
 }
 
+/** What the holder (and its tenon) reads from the stand's layout; the arc's stand builds its own. */
+export type HolderDims = Pick<StandLayout, 'holderW' | 'holderFront' | 'holderBack' | 'lampZ' | 'baseTop'>;
+
 /** The holder's tenon, which sits in the socket in the foot. */
-function tenon(k: Kernel, p: ParamValues, S: StandLayout, grow: number): Manifold {
+export function tenon(k: Kernel, p: ParamValues, S: HolderDims, grow: number): Manifold {
   const w = S.holderW / 2 - num(p, 'wallThickness') + grow;
   return box(k, [-w, S.holderFront + 0.8 - grow, SOCKET_FLOOR - grow], [w, S.holderBack - 0.8 + grow, S.baseTop + (grow > 0 ? 1 : 0.01)]);
 }
 
-function buildStandFoot(k: Kernel, p: ParamValues, S: StandLayout): Manifold {
+function buildStandFoot(k: Kernel, p: ParamValues, S: StandLayout, outline?: [number, number][]): Manifold {
   const foot = prism(roundedRect(k, S.outerX, S.outerY, num(p, 'cornerRadius')), 0, S.baseTop);
-  return foot.subtract(k.Manifold.union([standGroove(k, S), tenon(k, p, S, FIT / 2)]));
+  return foot.subtract(k.Manifold.union([standGroove(k, S, outline), tenon(k, p, S, FIT / 2)]));
 }
 
-function standGroove(k: Kernel, S: StandLayout): Manifold {
+/**
+ * The picture's groove: as wide as the picture, or for a shaped picture (`outline`, in panel
+ * space) its own outline with the clearance round it, as deep as the foot, so it holds a heart
+ * by its narrow bottom instead of leaving it room to slide.
+ */
+export function standGroove(
+  k: Kernel,
+  S: Pick<StandLayout, 'gap' | 'panelW' | 'planeY' | 'thick' | 'panelBottom' | 'panelTop' | 'baseTop'>,
+  outline?: [number, number][],
+): Manifold {
   const g = S.gap;
-  return box(k, [-S.panelW / 2 - g, S.planeY - S.thick / 2 - g, S.panelBottom - g], [S.panelW / 2 + g, S.planeY + S.thick / 2 + g, S.baseTop + 1]);
+  const slot = box(k, [-S.panelW / 2 - g, S.planeY - S.thick / 2 - g, S.panelBottom - g], [S.panelW / 2 + g, S.planeY + S.thick / 2 + g, S.baseTop + 1]);
+  if (!outline) return slot;
+  // panel x stays x, panel y goes up, its thickness along y: as the slot matrix places the picture
+  const zc = (S.panelBottom + S.panelTop) / 2;
+  const shaped = new k.CrossSection([outline])
+    .offset(g, 'Round')
+    .extrude(S.thick + 2 * g)
+    .translate([0, 0, -S.thick / 2 - g])
+    .rotate([90, 0, 0])
+    .translate([0, S.planeY, zc]);
+  return shaped.intersect(slot);
 }
 
-function buildHolder(k: Kernel, p: ParamValues, S: StandLayout): Manifold {
+export function buildHolder(k: Kernel, p: ParamValues, S: HolderDims): Manifold {
   const lampR = num(p, 'lampDiameter') / 2;
   const seat = num(p, 'holderDepth');
   const hw = S.holderW / 2;
@@ -43,11 +65,12 @@ function buildHolder(k: Kernel, p: ParamValues, S: StandLayout): Manifold {
   return post.add(tenon(k, p, S, 0)).subtract(k.Manifold.union(cuts));
 }
 
-export function buildStand(k: Kernel, p: ParamValues, panelInfo: Message): BuildResult {
+/** `outline`: a shaped picture's outline (panel space), for a groove of its shape. */
+export function buildStand(k: Kernel, p: ParamValues, panelInfo: Message, outline?: [number, number][]): BuildResult {
   const S = standLayout(p);
   const warnings = [...S.warnings];
   const W = S.panelW, H = S.panelH, T = S.thick;
-  let foot = buildStandFoot(k, p, S);
+  let foot = buildStandFoot(k, p, S, outline);
   // a battery tray under the foot, as under the light box; the base text then goes on its front
   let P: PowerLayout | null = null;
   if (bool(p, 'powerBase')) {

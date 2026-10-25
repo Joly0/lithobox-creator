@@ -190,3 +190,52 @@ export function standLayout(p: ParamValues): StandLayout {
     panelBottom, panelTop, holderW, holderFront, holderBack, lampZ, holderTop, warnings,
   };
 }
+
+/** Room between the lamp and the picture's back, and wall behind the lamp, on a flat seat. */
+const LAMP_GAP = 2.5;
+const BACK_WALL = 4;
+
+export interface SeatLayout {
+  outerX: number;
+  outerY: number;
+  totalHeight: number;
+  panelW: number;
+  panelH: number;
+  thick: number;
+  gap: number;
+  planeY: number;
+  baseTop: number;
+  panelBottom: number;
+  panelTop: number;
+  /** Centre of the puck's seat, behind the picture. */
+  lampY: number;
+  cable: CableSlot;
+  warnings: Message[];
+}
+
+/** The stand's foot without its holder: a flat seat for the puck right behind the picture. */
+export function seatLayout(p: ParamValues): SeatLayout {
+  const warnings: Message[] = [];
+  const panelW = num(p, 'panelWidth');
+  const panelH = num(p, 'panelHeight');
+  const thick = num(p, 'panelThickness');
+  const gap = num(p, 'slotClearance') / 2;
+  const inset = num(p, 'faceInset');
+  const groove = num(p, 'baseGroove');
+  const baseTop = num(p, 'baseHeight');
+  const lampDiameter = num(p, 'lampDiameter');
+  const lampR = lampDiameter / 2;
+
+  const outerX = Math.max(panelW + 2 * (SIDE + gap), lampDiameter + 2 * SIDE);
+  const outerY = inset + thick + 2 * gap + LAMP_GAP + lampDiameter + BACK_WALL;
+  const planeY = -outerY / 2 + inset + thick / 2;
+  const panelBottom = baseTop - groove;
+  const panelTop = panelBottom + panelH;
+  const lampY = planeY + thick / 2 + gap + LAMP_GAP + lampR;
+
+  if (groove + num(p, 'lampSeatDepth') > baseTop - 1) warnings.push({ key: 'warn.baseTooThin' });
+  // the cable hole stops short of the back wall
+  const cable = cableSlot(p, outerY / 2 - lampY - 2, warnings);
+
+  return { outerX, outerY, totalHeight: panelTop, panelW, panelH, thick, gap, planeY, baseTop, panelBottom, panelTop, lampY, cable, warnings };
+}
