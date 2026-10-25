@@ -48,9 +48,11 @@ async function directory(file: Blob): Promise<Entry[]> {
 
 /**
  * Read one entry as bytes. With `maxBytes`, stop after that many decompressed
- * bytes (enough to read the metadata at the top of a huge model file).
+ * bytes (enough to read the metadata at the top of a huge model file). With
+ * `overflow` 'null', an entry larger than that is refused instead of cut, so a
+ * file built to decompress to gigabytes cannot fill the memory.
  */
-export async function readZipBytes(file: Blob, name: string, maxBytes = Infinity): Promise<Uint8Array | null> {
+export async function readZipBytes(file: Blob, name: string, maxBytes = Infinity, overflow: 'cut' | 'null' = 'cut'): Promise<Uint8Array | null> {
   const e = (await directory(file)).find((x) => x.name.toLowerCase() === name.toLowerCase());
   if (!e) return null;
   const lh = await bytes(file, e.localOffset, e.localOffset + 30);
@@ -62,13 +64,16 @@ export async function readZipBytes(file: Blob, name: string, maxBytes = Infinity
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
-  while (total < maxBytes) {
+  // one byte past the limit is enough to know the entry is too big
+  const stopAt = overflow === 'null' ? maxBytes + 1 : maxBytes;
+  while (total < stopAt) {
     const { done, value } = await reader.read();
     if (done) break;
     chunks.push(value);
     total += value.length;
   }
   void reader.cancel().catch(() => {});
+  if (overflow === 'null' && total > maxBytes) return null;
   const all = new Uint8Array(total);
   let o = 0;
   for (const c of chunks) {
@@ -78,8 +83,8 @@ export async function readZipBytes(file: Blob, name: string, maxBytes = Infinity
   return all.subarray(0, Math.min(total, maxBytes));
 }
 
-/** Read one entry as text; `maxBytes` as for `readZipBytes`. */
-export async function readZipText(file: Blob, name: string, maxBytes = Infinity): Promise<string | null> {
-  const b = await readZipBytes(file, name, maxBytes);
+/** Read one entry as text; `maxBytes` and `overflow` as for `readZipBytes`. */
+export async function readZipText(file: Blob, name: string, maxBytes = Infinity, overflow: 'cut' | 'null' = 'cut'): Promise<string | null> {
+  const b = await readZipBytes(file, name, maxBytes, overflow);
   return b && new TextDecoder().decode(b);
 }

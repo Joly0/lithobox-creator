@@ -19,7 +19,7 @@ export async function profileFromFile(file: File): Promise<StoredProfile> {
   let settings: string | null;
   try {
     head = await readZipText(file, '3D/3dmodel.model', 16000);
-    settings = await readZipText(file, 'Metadata/project_settings.config');
+    settings = await readZipText(file, 'Metadata/project_settings.config', 4 << 20, 'null');
   } catch {
     throw new Error('profile.errNotProject');
   }
@@ -33,10 +33,13 @@ export async function profileFromFile(file: File): Promise<StoredProfile> {
   } catch {
     throw new Error('profile.errNotProject');
   }
-  const area = (cfg.printable_area as string[] | undefined)?.map((s) => s.split('x').map(Number)) ?? [];
+  const strings = (x: unknown) => (Array.isArray(x) ? x.filter((s): s is string => typeof s === 'string') : []);
+  const area = strings(cfg.printable_area).map((s) => s.split('x').map(Number));
   const xs = area.map((a) => a[0]), ys = area.map((a) => a[1]);
-  const bed: [number, number] = area.length ? [Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)] : [256, 256];
-  const filaments = (cfg.filament_settings_id as string[] | undefined) ?? [];
+  const size: [number, number] = [Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
+  // an odd or empty value gives the common 256 mm bed rather than NaN
+  const bed: [number, number] = area.length && size.every((v) => Number.isFinite(v) && v > 0) ? size : [256, 256];
+  const filaments = strings(cfg.filament_settings_id);
   return {
     application,
     orca: tag('OrcaSlicer'),

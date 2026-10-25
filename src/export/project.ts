@@ -73,6 +73,10 @@ function migrate(m: Record<string, unknown>): Manifest {
   return m as unknown as Manifest;
 }
 
+/** Largest project.json and photo a project file may hold once decompressed. */
+const MAX_MANIFEST = 1 << 20;
+const MAX_PHOTO = 50 << 20;
+
 const isObject = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
 const str = (x: unknown, fallback = '') => (typeof x === 'string' ? x : fallback);
 
@@ -80,7 +84,7 @@ const str = (x: unknown, fallback = '') => (typeof x === 'string' ? x : fallback
 export async function readProject(file: Blob): Promise<{ project: Project; missing: number }> {
   let raw: unknown;
   try {
-    raw = JSON.parse((await readZipText(file, MANIFEST)) ?? '');
+    raw = JSON.parse((await readZipText(file, MANIFEST, MAX_MANIFEST, 'null')) ?? '');
   } catch {
     throw new ProjectError('project.errInvalid');
   }
@@ -90,7 +94,7 @@ export async function readProject(file: Blob): Promise<{ project: Project; missi
   const photos: ProjectPhoto[] = [];
   let missing = 0;
   for (const ph of Array.isArray(m.photos) ? m.photos : []) {
-    const bytes = isObject(ph) && typeof ph.id === 'string' && typeof ph.file === 'string' ? await readZipBytes(file, ph.file).catch(() => null) : null;
+    const bytes = isObject(ph) && typeof ph.id === 'string' && typeof ph.file === 'string' ? await readZipBytes(file, ph.file, MAX_PHOTO, 'null').catch(() => null) : null;
     if (!bytes) {
       missing++;
       continue;
