@@ -1,0 +1,242 @@
+// Settings panel generated from a shape's parameter schema.
+import type { ShapeDefinition } from '../core/shape';
+import type { NumberParam, ParamDef, ParamGroup, ParamValues } from '../core/types';
+import { has, shapeKey, t } from '../i18n';
+
+export class ParamPanel {
+  private rows = new Map<string, { def: ParamDef; row: HTMLElement; sync: () => void; reset: HTMLButtonElement }>();
+  private showAdvanced = false;
+
+  constructor(
+    private host: HTMLElement,
+    private shape: ShapeDefinition,
+    private values: ParamValues,
+    private onChange: (key: string, values: ParamValues) => void,
+    /** Which of the shape's groups this panel shows. */
+    private filter: (g: ParamGroup) => boolean = () => true,
+  ) {
+    this.render();
+  }
+
+  /** Show another shape's settings. */
+  setShape(shape: ShapeDefinition, values: ParamValues): void {
+    this.shape = shape;
+    this.values = values;
+    this.render();
+  }
+
+  setValues(values: ParamValues): void {
+    this.values = values;
+    this.rows.forEach((r) => r.sync());
+    this.updateVisibility();
+  }
+
+  setAdvanced(on: boolean): void {
+    this.showAdvanced = on;
+    this.updateVisibility();
+  }
+
+  render(): void {
+    this.host.replaceChildren();
+    this.rows.clear();
+    const s = this.shape.id;
+    for (const g of this.shape.groups.filter(this.filter)) {
+      const det = document.createElement('details');
+      det.className = 'group';
+      det.open = isOpen(s, g.id);
+      det.addEventListener('toggle', () => rememberOpen(s, g.id, det.open));
+      det.dataset.group = g.id;
+      const sum = document.createElement('summary');
+      sum.textContent = t(shapeKey(s, `group.${g.id}`));
+      det.append(sum);
+      for (const def of g.params) det.append(this.row(def));
+      this.host.append(det);
+    }
+    this.updateVisibility();
+  }
+
+  private label(def: ParamDef): HTMLElement {
+    const s = this.shape.id;
+    const lab = document.createElement('label');
+    lab.className = 'plabel';
+    lab.htmlFor = `p-${def.key}`;
+    lab.textContent = t(shapeKey(s, `param.${def.key}`));
+    const helpKey = shapeKey(s, `param.${def.key}.help`);
+    if (has(helpKey)) {
+      const h = document.createElement('span');
+      h.className = 'help';
+      h.tabIndex = 0;
+      h.textContent = '?';
+      h.title = t(helpKey);
+      h.setAttribute('aria-label', t(helpKey));
+      lab.append(h);
+    }
+    return lab;
+  }
+
+  private row(def: ParamDef): HTMLElement {
+    const row = document.createElement('div');
+    row.className = `prow prow-${def.type}`;
+    let sync = () => {};
+    if (def.type === 'number') {
+      row.append(this.label(def));
+      const wrap = document.createElement('div');
+      wrap.className = 'pnum';
+      const range = document.createElement('input');
+      range.type = 'range';
+      const box = document.createElement('input');
+      box.type = 'number';
+      box.id = `p-${def.key}`;
+      for (const el of [range, box]) {
+        el.min = String(def.min);
+        el.max = String(def.max);
+        el.step = String(def.step);
+      }
+      const unit = document.createElement('span');
+      unit.className = 'unit';
+      unit.textContent = def.unit === 'deg' ? '°' : (def.unit ?? '');
+      const commit = (raw: string) => {
+        const v = clamp(def, parseFloat(raw));
+        if (Number.isNaN(v)) return;
+        this.values[def.key] = v;
+        range.value = box.value = String(v);
+        this.onChange(def.key, this.values);
+        this.updateVisibility();
+      };
+      range.addEventListener('input', () => commit(range.value));
+      box.addEventListener('change', () => commit(box.value));
+      sync = () => (range.value = box.value = String(this.values[def.key]));
+      wrap.append(range, box, unit);
+      row.append(wrap);
+    } else if (def.type === 'color') {
+      row.append(this.label(def));
+      const input = document.createElement('input');
+      input.id = `p-${def.key}`;
+      input.type = 'color';
+      input.className = 'pcolor';
+      input.addEventListener('change', () => {
+        this.values[def.key] = input.value;
+        this.onChange(def.key, this.values);
+        this.updateVisibility();
+      });
+      sync = () => (input.value = this.values[def.key] as string);
+      row.append(input);
+    } else if (def.type === 'text') {
+      row.append(this.label(def));
+      const input = def.multiline ? document.createElement('textarea') : document.createElement('input');
+      input.id = `p-${def.key}`;
+      input.maxLength = def.maxLength;
+      if (input instanceof HTMLTextAreaElement) input.rows = 3;
+      else input.type = 'text';
+      input.className = 'ptext';
+      // rebuild while typing, but not on every key stroke of a fast typist
+      let timer = 0;
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          this.values[def.key] = input.value;
+          this.onChange(def.key, this.values);
+          this.updateVisibility();
+        }, 250);
+      });
+      sync = () => (input.value = this.values[def.key] as string);
+      row.append(input);
+    } else if (def.type === 'bool') {
+      const lab = this.label(def);
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.id = `p-${def.key}`;
+      cb.addEventListener('change', () => {
+        this.values[def.key] = cb.checked;
+        this.onChange(def.key, this.values);
+        this.updateVisibility();
+      });
+      sync = () => (cb.checked = this.values[def.key] as boolean);
+      row.append(cb, lab);
+    } else {
+      row.append(this.label(def));
+      const sel = document.createElement('select');
+      sel.id = `p-${def.key}`;
+      for (const o of def.options) {
+        const opt = document.createElement('option');
+        opt.value = o;
+        opt.textContent = t(shapeKey(this.shape.id, `param.${def.key}.${o}`));
+        sel.append(opt);
+      }
+      sel.addEventListener('change', () => {
+        this.values[def.key] = sel.value;
+        this.onChange(def.key, this.values);
+        this.updateVisibility();
+      });
+      sync = () => (sel.value = this.values[def.key] as string);
+      row.append(sel);
+    }
+    // back to this one setting's default; only shown while it differs
+    const reset = document.createElement('button');
+    reset.type = 'button';
+    reset.className = 'preset-one';
+    reset.textContent = '↺';
+    const title = t('ui.resetOne', { value: this.defaultText(def), unit: def.type === 'number' && def.unit ? ` ${def.unit}` : '' });
+    reset.title = title;
+    reset.setAttribute('aria-label', title);
+    reset.addEventListener('click', () => {
+      this.values[def.key] = def.default;
+      sync();
+      this.onChange(def.key, this.values);
+      this.updateVisibility();
+    });
+    row.append(reset);
+    sync();
+    this.rows.set(def.key, { def, row, sync, reset });
+    return row;
+  }
+
+  /** A setting's default as the panel shows it (numbers stay numbers for the language's format). */
+  private defaultText(def: ParamDef): string | number {
+    if (def.type === 'number') return def.default;
+    if (def.type === 'bool') return t(def.default ? 'ui.yes' : 'ui.no');
+    if (def.type === 'select') return t(shapeKey(this.shape.id, `param.${def.key}.${def.default}`));
+    return def.default ? def.default : t('ui.empty');
+  }
+
+  private updateVisibility(): void {
+    this.rows.forEach(({ def, row, reset }) => {
+      const vis = (!def.advanced || this.showAdvanced) && (!def.visibleIf || def.visibleIf(this.values));
+      row.hidden = !vis;
+      reset.hidden = this.values[def.key] === def.default;
+    });
+    this.host.querySelectorAll<HTMLDetailsElement>('details.group').forEach((d) => {
+      d.hidden = ![...d.querySelectorAll<HTMLElement>('.prow')].some((r) => !r.hidden);
+    });
+  }
+}
+
+function clamp(def: NumberParam, v: number): number {
+  if (Number.isNaN(v)) return v;
+  const stepped = Math.round((v - def.min) / def.step) * def.step + def.min;
+  return Math.min(def.max, Math.max(def.min, +stepped.toFixed(4)));
+}
+
+// Which groups are open is a per-viewer convenience: remembered in this browser only.
+const DEFAULT_OPEN = ['panels', 'light', 'base'];
+const OPEN_KEY = 'openGroups';
+
+function openState(): Record<string, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem(OPEN_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function isOpen(shape: string, group: string): boolean {
+  return openState()[`${shape}.${group}`] ?? DEFAULT_OPEN.includes(group);
+}
+
+function rememberOpen(shape: string, group: string, open: boolean): void {
+  try {
+    localStorage.setItem(OPEN_KEY, JSON.stringify({ ...openState(), [`${shape}.${group}`]: open }));
+  } catch {
+    /* private mode */
+  }
+}

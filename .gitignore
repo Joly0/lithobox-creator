@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.local
+
+# kept local, not published
+docs/
+notebook/
+.spec-workflow/

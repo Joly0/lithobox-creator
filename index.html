@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Design your own lithophane light box in the browser and download it as STL or 3MF." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='5' y='5' width='22' height='22' rx='3' fill='%23e9a23b'/><rect x='9' y='9' width='14' height='14' fill='%23fff3d6'/></svg>" />
+    <title>Lithobox Creator</title>
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand"><span class="logo"></span><span data-i18n="app.title"></span></div>
+      <div class="top-actions">
+        <button type="button" id="saveProject" class="btn small" data-i18n="project.save"></button>
+        <label class="btn small" id="projectOpen"><span data-i18n="project.open"></span><input type="file" id="projectFile" accept=".lithobox" hidden /></label>
+        <select id="lang" aria-label="Language"></select>
+      </div>
+    </header>
+    <main class="layout">
+      <aside class="side">
+        <nav class="steps" role="tablist">
+          <button type="button" class="step" id="tab-design" role="tab" data-step="design"><span class="num">1</span><span data-i18n="step.design"></span></button>
+          <button type="button" class="step" id="tab-pictures" role="tab" data-step="pictures"><span class="num">2</span><span data-i18n="step.pictures"></span></button>
+        </nav>
+        <div class="side-head">
+          <label class="switch"><input type="checkbox" id="advanced" /> <span data-i18n="ui.advanced"></span></label>
+          <button id="reset" class="link" data-i18n="ui.reset"></button>
+        </div>
+        <section id="step-design" class="step-body">
+          <label class="preset" id="shapeRow"><span data-i18n="ui.shape"></span> <select id="shape"></select></label>
+          <label class="preset" id="presetRow"><span data-i18n="ui.preset"></span> <select id="preset"></select></label>
+          <div id="params"></div>
+          <details class="group profile" id="profileBox">
+            <summary data-i18n="profile.title"></summary>
+            <p class="hint" data-i18n="profile.hint"></p>
+            <p id="profileInfo" class="hint"></p>
+            <div class="profile-actions">
+              <label class="btn small"><span data-i18n="profile.load"></span><input type="file" id="profileFile" accept=".3mf" hidden /></label>
+              <button id="profileClear" class="link" data-i18n="profile.clear"></button>
+            </div>
+          </details>
+          <button type="button" class="btn primary step-next" data-goto="pictures" data-i18n="step.next"></button>
+        </section>
+        <section id="step-pictures" class="step-body">
+          <div id="pictures"></div>
+          <div id="lithoParams"></div>
+          <button type="button" class="btn step-next" data-goto="design" data-i18n="step.back"></button>
+        </section>
+      </aside>
+      <section class="stage">
+        <div id="viewport"></div>
+        <div class="viewbar">
+          <label><span data-i18n="ui.explode"></span> <input type="range" id="explode" min="0" max="1" step="0.01" value="0" /></label>
+          <label><input type="checkbox" id="section" /> <span data-i18n="ui.section"></span></label>
+          <label><input type="checkbox" id="ghosts" checked /> <span data-i18n="ui.ghosts"></span></label>
+          <label><input type="checkbox" id="edges" checked /> <span data-i18n="ui.edges"></span></label>
+          <label><input type="checkbox" id="lamp" /> <span data-i18n="ui.lamp"></span></label>
+  <label><input type="checkbox" id="printView" /> <span data-i18n="ui.printView"></span></label>
+          <button id="frame" class="link" data-i18n="ui.frame"></button>
+          <span id="status" class="status"></span>
+        </div>
+        <div class="outbar">
+          <ul id="info" class="info"></ul>
+          <div class="exports">
+            <div id="parts" class="parts"></div>
+            <button id="exportPlain" class="btn" data-i18n="export.plain3mf"></button>
+            <button id="exportStl" class="btn" data-i18n="export.stlZip"></button>
+            <button id="export3mf" class="btn primary" data-i18n="export.threemf"></button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
