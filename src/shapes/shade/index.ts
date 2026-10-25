@@ -3,6 +3,8 @@
 // a spider ring clamped by the socket's shade ring; the spider is a separate part, or joined to
 // the rim and printed with the shade in one piece. Or standing on a table: its bottom edge in a
 // cone-shaped groove in a round base that holds a puck light, or a lamp socket in a hollow drum.
+// Or on a lamp foot: the foot's upright socket clamps a separate spider whose slanted spokes reach
+// an outer ring under the shade's bottom edge (the shade stands on it) or under a rim at its top.
 //
 // Model space: millimetres, Z up, the shade's axis on x = y = 0, standing on z = 0 (a pendant
 // drawn as if it stood), the picture's middle facing -Y.
@@ -12,7 +14,7 @@ import { box, cylinder, toMeshData, type Kernel, type Manifold } from '../../geo
 import { ensureFont } from '../../geometry/text';
 import { annulus, applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, lampCuts, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
 import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
-import { cone, pendant, shadeGroups, table, tablePuck, tableSocket } from './params';
+import { cone, foot, footTop, pendant, shadeGroups, table, tablePuck, tableSocket } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', spider: '#e9a23b', litho: '#f4ead7', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
 
@@ -24,6 +26,8 @@ const RING_H = 3;
 const RING_W = 5;
 const HUB = 6;
 const SPOKE = 6;
+/** The lamp foot's spider: height of the collar inside the shade's bottom edge that centres it. */
+const COLLAR = 2;
 /** Bulbs for the preview lamp: diameter and length (A60 for E27, a candle-sized one for E14). */
 const BULB = { e27: [60, 105], e14: [45, 80] } as const;
 
@@ -73,13 +77,14 @@ export function shadeLayout(p: ParamValues): ShadeLayout {
   const gap = num(p, 'slotClearance') / 2;
   const groove = table(p) ? num(p, 'baseGroove') : 0;
   const baseTop = !table(p) ? 0 : tableSocket(p) ? num(p, 'socketRoom') + SOCKET_PLATE : num(p, 'baseHeight');
-  const bottom = table(p) ? baseTop - groove : 0;
+  // on a lamp foot with the spokes at the bottom the shade stands on the spider's outer ring
+  const bottom = table(p) ? baseTop - groove : foot(p) && !footTop(p) ? RING_H : 0;
   const rBase = rBo + gap + num(p, 'baseRim');
   const hole = str(p, 'socket') === 'e14' ? num(p, 'socketHoleE14') : num(p, 'socketHoleE27');
 
-  // it prints upside down when hanging (rim on the bed), the right way up on a table: the
+  // it prints upside down with a rim at its top (rim on the bed), else the right way up: the
   // wall must not lean out further than 45° on the way up
-  const lean = (Math.atan(pendant(p) ? -slope : slope) * 180) / Math.PI;
+  const lean = (Math.atan(pendant(p) || footTop(p) ? -slope : slope) * 180) / Math.PI;
   if (lean > 45) warnings.push({ key: 'warn.shadeSteep', vars: { deg: Math.round(lean) } });
 
   let cable: CableSlot | null = null;
@@ -106,6 +111,16 @@ export function shadeLayout(p: ParamValues): ShadeLayout {
   }
   if (tableSocket(p) && hole / 2 + 4 > rBi - gap - DRUM_WALL) warnings.push({ key: 'warn.lampTooBig', vars: { max: round(2 * (rBi - gap - DRUM_WALL - 4)) } });
   if (pendant(p) && spiderRing({ rBi, rTi, slope, top: height, bottom: 0 }) - RING_W < hole / 2 + HUB + 2) warnings.push({ key: 'warn.spiderNoFit' });
+  if (foot(p)) {
+    // the bulb stands on the socket ring: it must stay inside the shade, under a top spider's ring
+    const [, bl] = BULB[str(p, 'socket') === 'e14' ? 'e14' : 'e27'];
+    const room = height - (footTop(p) ? LIP_T + RING_H : 0) - bl;
+    if (num(p, 'ringHeight') > room) warnings.push({ key: 'warn.ringTooHigh', vars: { max: round(Math.max(0, room)) } });
+    const plateFits = footTop(p)
+      ? spiderRing({ rBi, rTi, slope, top: bottom + height, bottom }) - RING_W >= hole / 2 + HUB + 2
+      : backAt({ rBi, slope, bottom }, bottom + num(p, 'ringHeight')) - 1 >= hole / 2 + HUB;
+    if (!plateFits) warnings.push({ key: footTop(p) ? 'warn.spiderNoFit' : 'warn.plateNoFit' });
+  }
   const widest = Math.max(2 * Math.max(rTo, rBo, table(p) ? rBase : 0), power?.outerX ?? 0);
   if (widest > num(p, 'bedSize')) warnings.push({ key: 'warn.bed', vars: { size: round(widest), bed: num(p, 'bedSize') } });
 
@@ -143,6 +158,38 @@ function separateSpider(k: Kernel, p: ParamValues, L: ShadeLayout): Manifold {
   const ro = spiderRing(L);
   const z1 = L.top - LIP_T, z0 = z1 - RING_H;
   return annulus(k, ro - RING_W, ro, z0, z1).add(hubAndSpokes(k, p, L, ro - RING_W + 1, z0, z1));
+}
+
+/**
+ * The lamp foot's spider: an outer ring under the shade's bottom edge (flush with its outside,
+ * a collar inside the wall keeps the shade centred) or under the rim at its top edge, slanted
+ * spokes, and a plate round the socket hole whose top the socket's shade ring clamps, `ringHeight`
+ * above the shade's bottom edge. `rise` and `run`: the spokes' slope, for the support note.
+ */
+function footSpider(k: Kernel, p: ParamValues, L: ShadeLayout): { solid: Manifold; rise: number; run: number } {
+  const h = L.hole / 2;
+  const plate = L.bottom + num(p, 'ringHeight');
+  let ring: Manifold, ri: number, z0: number, z1: number;
+  if (footTop(p)) {
+    const ro = spiderRing(L);
+    ri = ro - RING_W;
+    z1 = L.top - LIP_T;
+    z0 = z1 - RING_H;
+    ring = annulus(k, ri, ro, z0, z1);
+  } else {
+    ri = L.rBi - RING_W;
+    z0 = 0;
+    z1 = RING_H;
+    const c = Math.min(backAt(L, z1), backAt(L, z1 + COLLAR)) - L.gap;
+    ring = annulus(k, ri, L.rBo, z0, z1).add(annulus(k, c - 2, c, z1 - 0.01, z1 + COLLAR));
+  }
+  const parts = [ring, annulus(k, h, h + HUB, plate - RING_H, plate)];
+  // each spoke a hull from the plate's edge to the ring, RING_H tall all along
+  const end = (r: number, za: number, zb: number): [number, number, number][] => [[r, -SPOKE / 2, za], [r, SPOKE / 2, za], [r, -SPOKE / 2, zb], [r, SPOKE / 2, zb]];
+  const spoke = k.Manifold.hull([...end(h + HUB - 1, plate - RING_H, plate), ...end(ri + 1, z0, z1)]);
+  const n = Number(p.spokes) || 3;
+  for (let i = 0; i < n; i++) parts.push(spoke.rotate([0, 0, 90 + (i * 360) / n]));
+  return { solid: k.Manifold.union(parts), rise: Math.abs(plate - z1), run: ri - h - HUB + 2 };
 }
 
 /** Model space to the shade's panel space (inverse of roundSlotMatrix): for volumes printed with the shade. */
@@ -187,7 +234,10 @@ export const shadeShape: ShapeDefinition = {
     // exploded: a hanging shade stays and the spider, socket and bulb lift out of its top (the
     // bulb clear of it); a standing shade lifts off its base
     const [bd, bl] = BULB[str(p, 'socket') === 'e14' ? 'e14' : 'e27'];
-    const shadeOut: [number, number, number] = pendant(p) ? [0, 0, 0] : [0, 0, 60];
+    const hangs = pendant(p) || footTop(p);
+    const shadeOut: [number, number, number] = hangs ? [0, 0, 0] : [0, 0, 60];
+    // spokes flatter than 45° need supports under them when the spider prints (only the spider)
+    let spiderSupports = false;
     const lift: [number, number, number] = [0, 0, bl + 30];
     // volumes printed as one object with the shade: in its panel space, placed by its matrix
     const withShade = (id: string, m: Manifold, color: string): PartOutput => ({
@@ -204,6 +254,12 @@ export const shadeShape: ShapeDefinition = {
         // printed flat, as it lies
         parts.push({ id: 'spider', mesh: toMeshData(separateSpider(k, p, L)), color: COLORS.spider, explode: lift, printRotation: [0, 0, 0] });
       }
+    } else if (foot(p)) {
+      const S = footSpider(k, p, L);
+      if (footTop(p)) parts.push(withShade('lip', lip(k, L), COLORS.litho));
+      // printed with its outer ring on the bed
+      parts.push({ id: 'spider', mesh: toMeshData(S.solid), color: COLORS.spider, explode: footTop(p) ? lift : [0, 0, 0], printRotation: footTop(p) ? [180, 0, 0] : [0, 0, 0] });
+      spiderSupports = S.rise > 1 && Math.atan2(S.rise, S.run) < Math.PI / 4;
     } else {
       let base = buildBase(k, p, L);
       const P = L.power;
@@ -227,7 +283,7 @@ export const shadeShape: ShapeDefinition = {
       thickness: L.thick,
       matrix,
       wrap: { radius: rMid, slope: L.slope },
-      upsideDown: pendant(p),
+      upsideDown: hangs,
       explode: shadeOut,
     };
     const stand = cylinder(k, 0, 0, L.bottom, L.height, L.rBo, L.rTo).subtract(cylinder(k, 0, 0, L.bottom - 1, L.height + 2, L.rBi - L.slope, L.rTi + L.slope));
@@ -238,6 +294,11 @@ export const shadeShape: ShapeDefinition = {
       const z = L.top - LIP_T - RING_H;
       const bulb = cylinder(k, 0, 0, z - bl, bl, bd * 0.3, bd / 2).add(cylinder(k, 0, 0, z, 35, L.hole / 2 - 1));
       parts.push({ id: 'lamp', mesh: toMeshData(bulb), color: COLORS.lamp, explode: lift, printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, z - bl * 0.6] });
+    } else if (foot(p)) {
+      // the bulb on the foot's socket, which stands under the spider's plate
+      const z = L.bottom + num(p, 'ringHeight');
+      const bulb = cylinder(k, 0, 0, z, bl, bd * 0.3, bd / 2).add(cylinder(k, 0, 0, z - 35, 35, L.hole / 2 - 1));
+      parts.push({ id: 'lamp', mesh: toMeshData(bulb), color: COLORS.lamp, explode: [0, 0, 0], printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, z + bl * 0.6] });
     } else if (tableSocket(p)) {
       const bulb = cylinder(k, 0, 0, L.baseTop, bl, bd / 2, bd * 0.3);
       parts.push({ id: 'lamp', mesh: toMeshData(bulb), color: COLORS.lamp, explode: [0, 0, 20], printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, L.baseTop + bl * 0.6] });
@@ -252,7 +313,8 @@ export const shadeShape: ShapeDefinition = {
       { key: 'info.shade', vars: { top: round(2 * L.rTo), bottom: round(2 * L.rBo), h: round(L.height), t: L.thick, w: round(slot.width) } },
     ];
     // the shade is PLA: only an LED bulb, and not a strong one
-    if (pendant(p) || tableSocket(p)) info.push({ key: 'info.shadeHeat' });
+    if (pendant(p) || tableSocket(p) || foot(p)) info.push({ key: 'info.shadeHeat' });
+    if (spiderSupports) info.push({ key: 'info.spiderSupports' });
     pushPowerInfo(info, P, p);
     return { parts, slots: [slot], warnings, info };
   },

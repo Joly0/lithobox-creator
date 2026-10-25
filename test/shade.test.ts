@@ -92,3 +92,40 @@ describe('lampshade', () => {
     expect(r.warnings.map((w) => w.key)).toContain('warn.shadeSteep');
   });
 });
+
+describe('lampshade on a lamp foot', () => {
+  for (const edge of ['bottom', 'top'])
+    for (const shape of SHAPES)
+      it(`${shape.shadeShape}, spokes at the ${edge} edge: the spider holds the shade and carries the socket ring`, async () => {
+        const { k, p, r } = await build({ ...shape, mount: 'foot', spiderEdge: edge });
+        expect(r.warnings.map((w) => w.key)).toEqual([]);
+        withScope(() => {
+          const spider = placed(k, r.parts.find((x) => x.id === 'spider')!);
+          // the shade itself, and the rim it hangs on at its top edge
+          const shade = [r.parts.find((x) => x.id === 'panel-round')!, ...r.parts.filter((x) => x.id === 'lip')].map((x) => placed(k, x));
+          const L = shadeLayout(p);
+          for (const s of shade) expect(spider.intersect(s).volume(), 'apart').toBeLessThan(1e-3);
+          // one piece: the spokes join the ring and the plate
+          expect(spider.decompose().length, 'one piece').toBe(1);
+          // the shade rests on the spider: under its bottom edge, or its rim on the ring at the top
+          const rests = edge === 'bottom' ? shade[0] : shade[1];
+          expect(spider.translate([0, 0, 0.3]).intersect(rests).volume(), 'carries the shade').toBeGreaterThan(0.1);
+          // the clamped plate's top is ringHeight above the shade's bottom edge
+          const b = spider.boundingBox();
+          const plateTop = edge === 'bottom' ? b.max[2] : b.min[2] + 3;
+          expect(plateTop).toBeCloseTo(L.bottom + (p.ringHeight as number), 1);
+          // the socket goes through
+          const pin = k.Manifold.cylinder(400, L.hole / 2 - 0.2, L.hole / 2 - 0.2, 32).translate([0, 0, -100]);
+          expect(spider.intersect(pin).volume(), 'socket hole').toBeLessThan(1e-3);
+        });
+      });
+
+  it('warns when the bulb would reach out of the shade, and notes supports for flat spokes', async () => {
+    const high = await build({ mount: 'foot', ringHeight: 120 });
+    expect(high.r.warnings.map((w) => w.key)).toContain('warn.ringTooHigh');
+    const low = await build({ mount: 'foot', ringHeight: 40 });
+    expect(low.r.info.map((i) => i.key)).toContain('info.spiderSupports');
+    const flat = await build({ mount: 'foot', ringHeight: 0 });
+    expect(flat.r.info.map((i) => i.key)).not.toContain('info.spiderSupports');
+  });
+});
