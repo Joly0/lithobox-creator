@@ -6,6 +6,8 @@ import { has, shapeKey, t } from '../i18n';
 export class ParamPanel {
   private rows = new Map<string, { def: ParamDef; row: HTMLElement; sync: () => void; reset: HTMLButtonElement }>();
   private showAdvanced = false;
+  /** Text fields waiting to apply what was typed, by key. */
+  private typing = new Map<string, number>();
 
   constructor(
     private host: HTMLElement,
@@ -26,6 +28,7 @@ export class ParamPanel {
   }
 
   setValues(values: ParamValues): void {
+    this.stopTyping();
     this.values = values;
     this.rows.forEach((r) => r.sync());
     this.updateVisibility();
@@ -36,7 +39,14 @@ export class ParamPanel {
     this.updateVisibility();
   }
 
+  /** Drop typing not applied yet, so it cannot land in another shape's or a preset's values. */
+  private stopTyping(): void {
+    this.typing.forEach((timer) => clearTimeout(timer));
+    this.typing.clear();
+  }
+
   render(): void {
+    this.stopTyping();
     this.host.replaceChildren();
     this.rows.clear();
     const s = this.shape.id;
@@ -130,14 +140,14 @@ export class ParamPanel {
       else input.type = 'text';
       input.className = 'ptext';
       // rebuild while typing, but not on every key stroke of a fast typist
-      let timer = 0;
       input.addEventListener('input', () => {
-        clearTimeout(timer);
-        timer = window.setTimeout(() => {
+        clearTimeout(this.typing.get(def.key));
+        this.typing.set(def.key, window.setTimeout(() => {
+          this.typing.delete(def.key);
           this.values[def.key] = input.value;
           this.onChange(def.key, this.values);
           this.updateVisibility();
-        }, 250);
+        }, 250));
       });
       sync = () => (input.value = this.values[def.key] as string);
       row.append(input);

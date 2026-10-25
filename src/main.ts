@@ -142,11 +142,14 @@ let lastRes = PREVIEW_RES;
 const REFINE_DELAY = 500;
 
 function rebuild(): void {
-  writeHash();
   clearTimeout(timer);
   clearTimeout(refineTimer);
-  // coarse while editing, so sliders stay quick
-  timer = window.setTimeout(() => client.request({ shape: shape.id, params: values, pictures: pictureGrids(PREVIEW_RES) }), 30);
+  // coarse while editing, so sliders stay quick; the address bar is updated in the same
+  // pause, since browsers limit how often replaceState may be called
+  timer = window.setTimeout(() => {
+    client.request({ shape: shape.id, params: values, pictures: pictureGrids(PREVIEW_RES) });
+    writeHash();
+  }, 30);
   refineTimer = window.setTimeout(refine, REFINE_DELAY);
 }
 
@@ -407,7 +410,7 @@ function renderInfo(r: BuildResult): void {
     const res = QUALITY_RES[String(values.lithoQuality)] ?? QUALITY_RES.normal;
     let tris = 0;
     for (const s of reliefs)
-      tris += triangleEstimate({ width: s.width, height: s.height, thickness: s.thickness, margin: 2, minThickness: 0.8, resolution: res });
+      tris += triangleEstimate({ width: s.width, height: s.height, thickness: s.thickness, margin: 2, minThickness: 0.8, resolution: res, wrapRadius: s.wrap?.radius, wrapOpen: s.wrap?.open });
     const li = document.createElement('li');
     // about 12 bytes per triangle once compressed (measured with photo-like pictures)
     li.textContent = t('info.lithoSize', { n: reliefs.length, tris: (tris / 1e6).toFixed(1), mb: Math.max(1, Math.round((tris * 12) / 1e6)) });

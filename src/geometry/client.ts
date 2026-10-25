@@ -35,6 +35,16 @@ export class GeometryClient {
       this.busy = false;
       this.flush();
     };
+    // an error outside the worker's own try (or a crash) sends no reply: without this the
+    // live queue would stay busy and every later request would wait forever
+    this.worker.onerror = (e) => {
+      const msg = e.message || 'geometry worker failed';
+      for (const w of this.once.values()) w.reject(new Error(msg));
+      this.once.clear();
+      this.busy = false;
+      this.onError(msg);
+      this.flush();
+    };
   }
 
   /** Live preview: replaces any request still waiting. */

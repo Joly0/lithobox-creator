@@ -96,6 +96,7 @@ function lampMaterial(panelNormal: THREE.Vector3, reach: number, minT: number, m
     },
     vertexShader: `uniform vec3 lampPos; uniform vec3 panelN; uniform float reach; uniform float wrapR; uniform float sphere;
       attribute float thick; attribute vec2 plocal;
+      #include <clipping_planes_pars_vertex>
       varying float vT; varying vec2 vLocal; varying vec3 vWorld; varying vec3 vN; varying float vIrr0; varying vec3 vObj;
       ${IRRADIANCE}
       void main() {
@@ -112,7 +113,10 @@ function lampMaterial(panelNormal: THREE.Vector3, reach: number, minT: number, m
         // point half way up at the same angle
         vec3 mid = wrapR > 0.0 ? nObj * wrapR : vec3(0.0);
         vIrr0 = irradiance((modelMatrix * vec4(mid, 1.0)).xyz, vN);
-        gl_Position = projectionMatrix * viewMatrix * w;
+        vec4 mvPosition = viewMatrix * w;
+        gl_Position = projectionMatrix * mvPosition;
+        // the section cut works in the lamp view too
+        #include <clipping_planes_vertex>
       }`,
     fragmentShader: `uniform vec3 lampPos; uniform vec3 panelN; uniform float reach; uniform vec3 light; uniform vec3 absorb;
       uniform sampler2D map; uniform float hasMap; uniform sampler2D tint; uniform float hasTint; uniform sampler2D mapBack; uniform float hasBack; uniform vec2 pic; uniform float t0; uniform float tMax; uniform float curve; uniform float wrapR;
@@ -126,6 +130,7 @@ function lampMaterial(panelNormal: THREE.Vector3, reach: number, minT: number, m
       float mercator(float p) { return log(tan(0.7853982 + p * 0.5)); }
       varying float vT; varying vec2 vLocal; varying vec3 vWorld; varying vec3 vN; varying float vIrr0; varying vec3 vObj;
       ${IRRADIANCE}
+      #include <clipping_planes_pars_fragment>
       // the texture's mip level follows how fast uv changes; where a cylinder's picture closes
       // u jumps from 1 to 0, so take the slower of u and u shifted by half a turn
       // inside the picture's outline (its margin is full thickness, like a rectangle's)
@@ -171,6 +176,7 @@ function lampMaterial(panelNormal: THREE.Vector3, reach: number, minT: number, m
         return textureGrad(map, uv, dx, dy).r;
       }
       void main() {
+        #include <clipping_planes_fragment>
         float t = vT;
         // a colour picture's stacks: the share of red, green and blue they let through
         vec3 filt = vec3(1.0);
@@ -218,6 +224,7 @@ function lampMaterial(panelNormal: THREE.Vector3, reach: number, minT: number, m
         gl_FragColor = vec4(pow(lin, vec3(1.0 / 2.2)), 1.0);
       }`,
     side: THREE.DoubleSide,
+    clipping: true,
   });
 }
 
@@ -720,6 +727,7 @@ export class Viewer implements ModelViewer {
       if (v.lit && v.lampAt) (v.lit as THREE.ShaderMaterial).uniforms.lampPos.value.fromArray(explodedLight(v.lampAt.toArray() as Vec3, e, this.explode));
       v.mesh.visible = !this.hidden.has(v.part.id);
       (v.normal as THREE.MeshStandardMaterial).clippingPlanes = planes;
+      if (v.lit) v.lit.clippingPlanes = planes;
       v.mesh.material = this.lampOn && v.lit ? v.lit : v.normal;
       if (v.edges) {
         v.edges.visible = this.edgesOn;

@@ -33,7 +33,14 @@ export function ensureFont(id: string): Promise<void> {
   if (!FONT_URLS[id]) return Promise.reject(new Error(`unknown font ${id}`));
   let p = pending.get(id);
   if (!p) {
-    p = loader(id).then((buf) => void fonts.set(id, parse(buf)));
+    // a failed download is forgotten, so the next build tries again
+    p = loader(id).then(
+      (buf) => void fonts.set(id, parse(buf)),
+      (e) => {
+        pending.delete(id);
+        throw e;
+      },
+    );
     pending.set(id, p);
   }
   return p;

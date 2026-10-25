@@ -44,22 +44,31 @@ export class PicturesPanel {
   /** Every change is saved in the browser (debounced) and triggers a rebuild. */
   private saveTimer = 0;
   private changed(): void {
-    clearTimeout(this.saveTimer);
-    this.saveTimer = window.setTimeout(() => void this.persist(), 400);
+    this.saveLater();
     this.onChange();
   }
 
+  private saveLater(): void {
+    clearTimeout(this.saveTimer);
+    this.saveTimer = window.setTimeout(() => void this.persist(), 400);
+  }
+
   private persist(): Promise<unknown> {
-    const slots: Record<string, { photo: string; edit: PictureEdit }> = {};
-    for (const [id, p] of this.placements) slots[id] = { photo: p.photo.id, edit: p.edit };
-    return saveValue('pictures', { order: this.library.map((p) => p.id), slots });
+    const record = (m: Map<string, Placement>) => {
+      const out: Record<string, { photo: string; edit: PictureEdit }> = {};
+      for (const [id, p] of m) out[id] = { photo: p.photo.id, edit: p.edit };
+      return out;
+    };
+    // parked too: the sides a shape lacks get their photos back after a reload
+    return saveValue('pictures', { order: this.library.map((p) => p.id), slots: record(this.placements), parked: record(this.parked) });
   }
 
   /** Bring back the photos and placements of the last visit. */
   async restore(): Promise<void> {
     const stored = await loadPhotos();
     if (!stored.length) return;
-    const state = await loadValue<{ order: string[]; slots: Record<string, { photo: string; edit: PictureEdit }> }>('pictures');
+    type Saved = Record<string, { photo: string; edit: PictureEdit }>;
+    const state = await loadValue<{ order: string[]; slots: Saved; parked?: Saved }>('pictures');
     const photos = new Map<string, Photo>();
     for (const sp of stored) {
       try {
@@ -73,6 +82,10 @@ export class PicturesPanel {
     for (const [slot, s] of Object.entries(state?.slots ?? {})) {
       const photo = photos.get(s.photo);
       if (photo) this.placements.set(slot, { photo, edit: { ...DEFAULT_EDIT, ...s.edit }, version: 1 });
+    }
+    for (const [slot, s] of Object.entries(state?.parked ?? {})) {
+      const photo = photos.get(s.photo);
+      if (photo && !this.placements.has(slot)) this.parked.set(slot, { photo, edit: { ...DEFAULT_EDIT, ...s.edit }, version: 1 });
     }
     this.render();
     this.onChange();
@@ -98,13 +111,13 @@ export class PicturesPanel {
       }
     }
     const versions = new Map([...this.placements].map(([id, p]) => [id, p.version]));
-    for (const p of this.library) void deletePhoto(p.id);
+    const oldIds = this.library.map((p) => p.id);
     this.library.length = 0;
     this.placements.clear();
     this.parked.clear();
     this.editing = this.choosing = null;
     this.library.push(...photos.values());
-    for (const p of this.library) void savePhoto({ id: p.id, name: p.name, blob: p.blob });
+    void this.storeLibrary(oldIds);
     for (const [slot, s] of Object.entries(slots)) {
       const photo = photos.get(s.photo);
       // a new version, so cached samples of the side's old photo are not reused
@@ -115,14 +128,27 @@ export class PicturesPanel {
     return failed;
   }
 
+  /**
+   * Save the library's photos, then drop the old ones it no longer has. Only once every
+   * save worked: when storage is full, the last visit's photos are kept rather than lost.
+   */
+  private async storeLibrary(oldIds: string[]): Promise<void> {
+    const saved = await Promise.all(this.library.map((p) => savePhoto({ id: p.id, name: p.name, blob: p.blob })));
+    if (saved.some((r) => r === null)) return;
+    const keep = new Set(this.library.map((p) => p.id));
+    await Promise.all(oldIds.filter((id) => !keep.has(id)).map((id) => deletePhoto(id)));
+  }
+
   /** Called after every build: the slots (and their sizes) can change with the settings. */
   setSlots(slots: SlotInfo[]): void {
     const key = (s: SlotInfo[]) => s.map((x) => `${x.id}:${x.width.toFixed(1)}x${x.height.toFixed(1)}:${maskKey(x)}`).join('|');
     if (key(slots) === key(this.slots)) return;
     this.slots = slots;
     const has = (id: string) => slots.some((s) => s.id === id);
+    let moved = false;
     for (const [id, p] of [...this.placements]) {
       if (has(id)) continue;
+      moved = true;
       this.parked.delete(id);
       this.parked.set(id, p);
       this.placements.delete(id);
@@ -135,7 +161,9 @@ export class PicturesPanel {
       const p = this.parked.get(from)!;
       this.parked.delete(from);
       this.placements.set(s.id, { ...p, version: p.version + 1 });
+      moved = true;
     }
+    if (moved) this.saveLater();
     this.render();
     // photos restored before the first build: now that the slots are known, show them
     if (this.placements.size) this.onChange();

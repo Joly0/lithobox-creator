@@ -473,5 +473,7 @@ export function wrapMesh(spec: PanelSpec, hm: HeightMap): MeshData {
 /** Rough triangle count, for size estimates before building. */
 export function triangleEstimate(spec: PanelSpec): number {
   const { cols, rows } = gridSize(spec);
+  // wrapped (see wrapMesh): the back is a grid too, plus the top and bottom rings and an arc's ends
+  if (spec.wrapRadius) return 4 * (cols - 1) * rows + (spec.wrapOpen ? 4 * (rows - 1) : 0);
   return 2 * (cols - 1) * (rows - 1) + 6 * (cols + rows);
 }
