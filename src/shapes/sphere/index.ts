@@ -11,7 +11,7 @@ import { box, cylinder, toMeshData, type Kernel, type Manifold } from '../../geo
 import { ensureFont } from '../../geometry/text';
 import { applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, lampCuts, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
 import { spherePicture, type SphereProjection } from '../../litho/mesh';
-import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
+import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
 import { basePuck, baseSocket, onBase, sphereGroups, standalone } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -106,7 +106,7 @@ export function sphereLayout(p: ParamValues): SphereLayout {
     cable = cableSlot(p, opening - gap - 1.5, warnings);
     if (bool(p, 'powerBase')) {
       const h = PILLAR / 2, pr = rBase - 1 - h * Math.SQRT2, angles = [45, 135, 225, 315];
-      const grow = 2 * (POWER_WALL + POWER_FIT), ri = rBase - POWER_LEDGE;
+      const grow = 2 * (POWER_WALL + powerFit(p)), ri = rBase - POWER_LEDGE;
       power = powerLayout(p, {
         size: [2 * rBase + grow, 2 * rBase + grow],
         innerW: 2 * ri * 0.85,
@@ -162,7 +162,7 @@ export const sphereShape: ShapeDefinition = {
       let base = buildBase(k, p, L);
       const P = L.power;
       let tray = P ? roundTray(k, p, L.rBase, P) : null;
-      const tr = P ? L.rBase + POWER_WALL + POWER_FIT : L.rBase;
+      const tr = P ? L.rBase + POWER_WALL + powerFit(p) : L.rBase;
       const arc = ((2 * Math.PI) / 3) * tr - 8;
       const t = P ? curvedText(k, p, 0, 0, tr, powerTextZ(P), arc, P.inner - 4) : curvedText(k, p, 0, 0, L.rBase, L.baseTop / 2, arc, Math.min(L.baseTop - 2, 20));
       if (tray) tray = applyFrontText(tray, t, warnings);

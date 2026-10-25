@@ -91,7 +91,8 @@ describe('box', () => {
 
   it('reports the outer size from panel width, posts and slot depth', () => {
     const L = boxLayout(defaultValues(boxShape));
-    expect(L.outerX).toBe(156 + 2 * (14 - 4));
+    // 14.5 mm posts: room for a magnet in the corner plug with the default clearances
+    expect(L.outerX).toBe(156 + 2 * (14.5 - 4));
     expect(L.warnings).toEqual([]);
   });
 });

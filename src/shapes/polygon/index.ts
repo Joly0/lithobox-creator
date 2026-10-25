@@ -10,7 +10,7 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { box, prism, toMeshData, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
 import { applyFrontText, cableCuts, cableSlot, type CableSlot, frontText, lampCuts, lidText, puckLamp, slotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
-import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
+import { buildPowerTray, PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
 import { applyLidJoint, jointGeometry, type JointGeometry, jointLayout, type JointLayout, type LatchFace, type Socket } from '../common/lid';
 import { polygonGroups } from './params';
 
@@ -29,6 +29,8 @@ export interface PolygonLayout {
   panelH: number;
   thick: number;
   gap: number;
+  /** Play along the picture's edges (its width), per side; `gap` is across its thickness. */
+  wgap: number;
   engage: number;
   post: number;
   /** Distance from the centre to each picture's mid-plane, and to the outside faces. */
@@ -50,7 +52,7 @@ export interface PolygonLayout {
   sizeY: number;
   backY: number;
   cable: CableSlot;
-  /** Battery tray underneath; its outside is the outline grown by `POWER_WALL + POWER_FIT`. */
+  /** Battery tray underneath; its outside is the outline grown by `POWER_WALL + powerFit(p)`. */
   power: PowerLayout | null;
   warnings: Message[];
 }
@@ -66,6 +68,7 @@ export function polygonLayout(p: ParamValues): PolygonLayout {
   const panelH = num(p, 'panelHeight');
   const thick = num(p, 'panelThickness');
   const gap = num(p, 'slotClearance') / 2;
+  const wgap = num(p, 'slotWidthClearance') / 2;
   const engage = num(p, 'slotEngage');
   const post = num(p, 'postSize');
   const inset = num(p, 'faceInset');
@@ -146,7 +149,7 @@ export function polygonLayout(p: ParamValues): PolygonLayout {
   // battery tray: the same polygon grown by the tray's wall, a square pillar in each corner
   let power: PowerLayout | null = null;
   if (bool(p, 'powerBase')) {
-    const grow = (POWER_WALL + POWER_FIT) / apothem;
+    const grow = (POWER_WALL + powerFit(p)) / apothem;
     const open = apothem - POWER_LEDGE;
     const h = PILLAR / 2;
     // on the corner's bisector, turned with it, 1 mm inside the outline
@@ -174,7 +177,7 @@ export function polygonLayout(p: ParamValues): PolygonLayout {
   const widest = Math.max(sizeX, sizeY, power ? Math.max(power.outerX, power.outerY) : 0);
   if (widest > bed) warnings.push({ key: 'warn.bed', vars: { size: round(widest), bed } });
 
-  return { n, phi, panelW, panelH, thick, gap, engage, post, plane, apothem, baseTop, panelBottom, panelTop, lidBottom, lidTop, topR, joint, sockets, latches, sizeX, sizeY, backY: Math.max(...ys), cable, power, warnings };
+  return { n, phi, panelW, panelH, thick, gap, wgap, engage, post, plane, apothem, baseTop, panelBottom, panelTop, lidBottom, lidTop, topR, joint, sockets, latches, sizeX, sizeY, backY: Math.max(...ys), cable, power, warnings };
 }
 
 /** Regular polygon outline whose sides face the sides' normals, `apothem` from the centre. */
@@ -205,7 +208,7 @@ function onSide(k: Kernel, L: PolygonLayout, i: number, w: number, t: number, z0
 /** The grooves the pictures stand in, from below the picture up to `z1`. */
 function grooves(k: Kernel, L: PolygonLayout, z1: number): Manifold[] {
   const g = L.gap;
-  return Array.from({ length: L.n }, (_, i) => onSide(k, L, i, L.panelW + 2 * g, L.thick + 2 * g, L.panelBottom - g, z1));
+  return Array.from({ length: L.n }, (_, i) => onSide(k, L, i, L.panelW + 2 * L.wgap, L.thick + 2 * g, L.panelBottom - g, z1));
 }
 
 function buildBody(k: Kernel, p: ParamValues, L: PolygonLayout, joint: JointGeometry): Manifold {
@@ -238,11 +241,11 @@ function buildBody(k: Kernel, p: ParamValues, L: PolygonLayout, joint: JointGeom
 /** The battery tray: the polygon grown by its wall, standing in its rim, open inside. */
 function buildTray(k: Kernel, p: ParamValues, L: PolygonLayout, P: PowerLayout): Manifold {
   const r = num(p, 'cornerRadius');
-  const grow = POWER_WALL + POWER_FIT;
+  const grow = POWER_WALL + powerFit(p);
   const scale = (a: number) => (L.backY * a) / L.apothem;
   return buildPowerTray(k, p, P, {
     outer: outline(k, L, L.apothem + grow, r + grow),
-    pocket: outline(k, L, L.apothem + POWER_FIT, r + POWER_FIT),
+    pocket: outline(k, L, L.apothem + powerFit(p), r + powerFit(p)),
     open: outline(k, L, L.apothem - POWER_LEDGE, Math.max(1, r - 2)),
     front: -(L.apothem + grow),
     back: scale(L.apothem + grow),
@@ -260,7 +263,7 @@ function buildLid(k: Kernel, p: ParamValues, L: PolygonLayout, joint: JointGeome
   const cuts = [...grooves(k, L, L.panelTop + L.gap + 0.3)];
   if (L.topR) {
     // a rebate the top picture lies in (sharp corners, like the picture), on a ledge round the opening
-    cuts.push(prism(outline(k, L, L.topR + L.gap), L.lidTop - (L.thick + 0.2), L.lidTop + 1));
+    cuts.push(prism(outline(k, L, L.topR + L.wgap), L.lidTop - (L.thick + 0.2), L.lidTop + 1));
     cuts.push(prism(outline(k, L, L.topR - num(p, 'topLedge'), 1), L.lidBottom - 1, L.lidTop + 1));
   } else cuts.push(prism(outline(k, L, lidOpening(L), Math.max(1, r - 2)), L.lidBottom - 1, L.lidTop + 1));
   lid = lid.subtract(k.Manifold.union(cuts));
@@ -320,10 +323,10 @@ export const polygonShape: ShapeDefinition = {
     const side = (apothem: number) => 2 * apothem * Math.tan(L.phi);
     // (with a battery tray, the base text goes on the tray's front, as on the box)
     const P = L.power;
-    const trayA = L.apothem + POWER_WALL + POWER_FIT;
+    const trayA = L.apothem + POWER_WALL + powerFit(p);
     let tray = P ? buildTray(k, p, L, P) : null;
     const base = P
-      ? frontText(k, p, -trayA, powerTextZ(P), side(trayA) - 2 * (r + POWER_WALL + POWER_FIT) - 8, P.inner - 4)
+      ? frontText(k, p, -trayA, powerTextZ(P), side(trayA) - 2 * (r + POWER_WALL + powerFit(p)) - 8, P.inner - 4)
       : frontText(k, p, -L.apothem, L.baseTop / 2, side(L.apothem) - 2 * r - 8, L.baseTop - 2);
     if (tray) tray = applyFrontText(tray, base, warnings);
     else body = applyFrontText(body, base, warnings);

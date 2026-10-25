@@ -1,7 +1,7 @@
 import { formatParam } from '../../core/format';
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups } from '../box/params';
-import { fromBox, keys } from '../common/params';
+import { clearanceGroup, fromBox, keys } from '../common/params';
 
 /** How the picture is lit; an LED strip frame comes later. */
 export const LIGHTING = ['box', 'stand', 'plain', 'frame'];
@@ -13,6 +13,8 @@ export const lightBox = (p: ParamValues) => p.lighting === 'box';
 /** Open stand: a foot with the picture at the front and an upright puck light holder behind it. */
 export const lightStand = (p: ParamValues) => p.lighting === 'stand';
 const withLamp = (p: ParamValues) => lightBox(p) || lightStand(p);
+/** Every lighting but the picture on its own holds the picture in a groove or a frame. */
+const pictureHeld = (p: ParamValues) => p.lighting !== 'plain';
 
 export const panelGroups: ParamGroup[] = [
   {
@@ -22,10 +24,11 @@ export const panelGroups: ParamGroup[] = [
       { key: 'panelWidth', type: 'number', default: 150, min: 40, max: 300, step: 0.5, unit: 'mm' },
       { key: 'panelHeight', type: 'number', default: 150, min: 40, max: 300, step: 0.5, unit: 'mm' },
       { key: 'panelThickness', type: 'number', default: 3.2, min: 1, max: 8, step: 0.1, unit: 'mm' },
-      fromBox('slotClearance', withLamp),
       fromBox('slotEngage', lightBox),
     ],
   },
+  // play between the parts this shape has
+  clearanceGroup({ slotClearance: pictureHeld, slotWidthClearance: pictureHeld, plugClearance: lightBox, magnetClearance: withLamp, bankClearance: withLamp, powerTrayClearance: withLamp, discClearance: withLamp, holderClearance: lightStand, hoodClearance: lightBox, frameClearance: lightFrame }),
   boxGroups.find((g) => g.id === 'litho')!,
   {
     id: 'light',
@@ -63,7 +66,11 @@ export const panelGroups: ParamGroup[] = [
   // the hood closes on the base with the box lid's closures; the hood has its own top plate
   {
     id: 'lid',
-    params: boxGroups.find((g) => g.id === 'lid')!.params.filter((d) => !['lidThickness', 'topLedge', 'lidGroove'].includes(d.key)).map((d) => fromBox(d.key, lightBox)),
+    params: boxGroups
+      .find((g) => g.id === 'lid')!
+      .params.filter((d) => !['lidThickness', 'topLedge', 'lidGroove'].includes(d.key))
+      // the magnets and pegs also join the battery tray under the stand's foot
+      .map((d) => fromBox(d.key, ['magnetDiameter', 'magnetHeight', 'pegSize'].includes(d.key) ? withLamp : lightBox)),
   },
   { id: 'text', params: keys(withLamp, 'baseText', 'baseTextStyle', 'baseTextSize', 'textFont', 'textDepth', 'textSecondColor') },
   // battery tray under the light box, as under the box

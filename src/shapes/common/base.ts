@@ -88,7 +88,7 @@ export function lampCuts(k: Kernel, p: ParamValues, cy: number, baseTop: number)
   if (bool(p, 'steelDisc')) {
     // recess for the steel disc of magnetic-base bulbs, in the floor of the lamp seat
     const dd = num(p, 'discDepth');
-    cuts.push(cylinder(k, 0, cy, baseTop - seat - dd, dd + 0.01, num(p, 'discDiameter') / 2 + 0.2));
+    cuts.push(cylinder(k, 0, cy, baseTop - seat - dd, dd + 0.01, num(p, 'discDiameter') / 2 + num(p, 'discClearance')));
   }
   return cuts;
 }

@@ -8,7 +8,7 @@ import { bool, num, round, str } from '../../core/shape';
 import type { Message, ParamValues } from '../../core/types';
 import { cableSlot, type CableSlot } from '../common/base';
 import { jointLayout, type LidJoint } from '../common/lid';
-import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout } from '../common/power';
+import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout } from '../common/power';
 
 export type { LidJoint, PowerLayout };
 
@@ -24,6 +24,8 @@ export interface BoxLayout {
   thick: number;
   /** Half the slot clearance: gap on each side of a panel. */
   gap: number;
+  /** Play along the picture's edges (its width), per side; `gap` is across its thickness. */
+  wgap: number;
   post: number;
   engage: number;
   /** Distance of each panel's mid-plane from the centre. */
@@ -65,6 +67,7 @@ export function boxLayout(p: ParamValues): BoxLayout {
   const panelH = num(p, 'panelHeight');
   const thick = num(p, 'panelThickness');
   const gap = num(p, 'slotClearance') / 2;
+  const wgap = num(p, 'slotWidthClearance') / 2;
   const engage = num(p, 'slotEngage');
   const post = num(p, 'postSize');
   const inset = num(p, 'faceInset');
@@ -123,7 +126,7 @@ export function boxLayout(p: ParamValues): BoxLayout {
 
   let power: PowerLayout | null = null;
   if (bool(p, 'powerBase')) {
-    const grow = 2 * (POWER_WALL + POWER_FIT);
+    const grow = 2 * (POWER_WALL + powerFit(p));
     const corner = (sx: number, sy: number): [number, number] => [sx * (outerX / 2 - PILLAR / 2 - 1), sy * (outerY / 2 - PILLAR / 2 - 1)];
     power = powerLayout(p, {
       size: [outerX + grow, outerY + grow],
@@ -140,7 +143,7 @@ export function boxLayout(p: ParamValues): BoxLayout {
   if (widest > bed) warnings.push({ key: 'warn.bed', vars: { size: round(widest), bed } });
 
   return {
-    outerX, outerY, totalHeight: lidTop, panelW, panelD, panelH, thick, gap, post, engage,
+    outerX, outerY, totalHeight: lidTop, panelW, panelD, panelH, thick, gap, wgap, post, engage,
     planeX, planeY, baseTop, panelBottom, panelTop, lidBottom, lidTop, joint,
     socketCx, socketCy, socketTop, socketDepth, plugTop, plugTip, plugDepth, magnetsFit,
     latchCy, latchWidth, cable,

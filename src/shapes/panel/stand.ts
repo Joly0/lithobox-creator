@@ -4,8 +4,8 @@ import { bool, num, round } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
 import { box, cylinder, prism, roundedRect, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { applyFrontText, frontText, slotMatrix } from '../common/base';
-import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, rectTray } from '../common/power';
-import { COLORS, FIT, NOTCH, SOCKET_FLOOR, type StandLayout, standLayout } from './layout';
+import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, rectTray } from '../common/power';
+import { COLORS, NOTCH, SOCKET_FLOOR, type StandLayout, standLayout } from './layout';
 
 /** Cylinder along +Y from y0 to y1, centred on (x, z). */
 export function cylY(k: Kernel, x: number, y0: number, y1: number, z: number, r: number): Manifold {
@@ -23,7 +23,7 @@ export function tenon(k: Kernel, p: ParamValues, S: HolderDims, grow: number): M
 
 function buildStandFoot(k: Kernel, p: ParamValues, S: StandLayout, outline?: [number, number][]): Manifold {
   const foot = prism(roundedRect(k, S.outerX, S.outerY, num(p, 'cornerRadius')), 0, S.baseTop);
-  return foot.subtract(k.Manifold.union([standGroove(k, S, outline), tenon(k, p, S, FIT / 2)]));
+  return foot.subtract(k.Manifold.union([standGroove(k, S, outline), tenon(k, p, S, num(p, 'holderClearance'))]));
 }
 
 /**
@@ -33,16 +33,16 @@ function buildStandFoot(k: Kernel, p: ParamValues, S: StandLayout, outline?: [nu
  */
 export function standGroove(
   k: Kernel,
-  S: Pick<StandLayout, 'gap' | 'panelW' | 'planeY' | 'thick' | 'panelBottom' | 'panelTop' | 'baseTop'>,
+  S: Pick<StandLayout, 'gap' | 'wgap' | 'panelW' | 'planeY' | 'thick' | 'panelBottom' | 'panelTop' | 'baseTop'>,
   outline?: [number, number][],
 ): Manifold {
-  const g = S.gap;
-  const slot = box(k, [-S.panelW / 2 - g, S.planeY - S.thick / 2 - g, S.panelBottom - g], [S.panelW / 2 + g, S.planeY + S.thick / 2 + g, S.baseTop + 1]);
+  const g = S.gap, wg = S.wgap;
+  const slot = box(k, [-S.panelW / 2 - wg, S.planeY - S.thick / 2 - g, S.panelBottom - g], [S.panelW / 2 + wg, S.planeY + S.thick / 2 + g, S.baseTop + 1]);
   if (!outline) return slot;
   // panel x stays x, panel y goes up, its thickness along y: as the slot matrix places the picture
   const zc = (S.panelBottom + S.panelTop) / 2;
   const shaped = new k.CrossSection([outline])
-    .offset(g, 'Round')
+    .offset(wg, 'Round')
     .extrude(S.thick + 2 * g)
     .translate([0, 0, -S.thick / 2 - g])
     .rotate([90, 0, 0])
@@ -61,7 +61,7 @@ export function buildHolder(k: Kernel, p: ParamValues, S: HolderDims): Manifold 
     // the cable leaves the cup downwards
     box(k, [-NOTCH / 2, S.holderFront - 1, S.baseTop], [NOTCH / 2, S.holderFront + seat, S.lampZ]),
   ];
-  if (bool(p, 'steelDisc')) cuts.push(cylY(k, 0, S.holderFront + seat - 0.01, S.holderFront + seat + num(p, 'discDepth'), S.lampZ, num(p, 'discDiameter') / 2 + 0.2));
+  if (bool(p, 'steelDisc')) cuts.push(cylY(k, 0, S.holderFront + seat - 0.01, S.holderFront + seat + num(p, 'discDepth'), S.lampZ, num(p, 'discDiameter') / 2 + num(p, 'discClearance')));
   return post.add(tenon(k, p, S, 0)).subtract(k.Manifold.union(cuts));
 }
 
@@ -74,7 +74,7 @@ export function buildStand(k: Kernel, p: ParamValues, panelInfo: Message, outlin
   // a battery tray under the foot, as under the light box; the base text then goes on its front
   let P: PowerLayout | null = null;
   if (bool(p, 'powerBase')) {
-    const grow = 2 * (POWER_WALL + POWER_FIT);
+    const grow = 2 * (POWER_WALL + powerFit(p));
     const corner = (sx: number, sy: number): [number, number] => [sx * (S.outerX / 2 - PILLAR / 2 - 1), sy * (S.outerY / 2 - PILLAR / 2 - 1)];
     P = powerLayout(p, {
       size: [S.outerX + grow, S.outerY + grow],
@@ -89,7 +89,7 @@ export function buildStand(k: Kernel, p: ParamValues, panelInfo: Message, outlin
   const r = num(p, 'cornerRadius');
   let tray = P ? rectTray(k, p, S.outerX, S.outerY, P) : null;
   const text = P
-    ? frontText(k, p, -P.outerY / 2, powerTextZ(P), P.outerX - 2 * (r + POWER_WALL + POWER_FIT) - 8, P.inner - 4)
+    ? frontText(k, p, -P.outerY / 2, powerTextZ(P), P.outerX - 2 * (r + POWER_WALL + powerFit(p)) - 8, P.inner - 4)
     : frontText(k, p, -S.outerY / 2, S.baseTop / 2, S.outerX - 2 * r - 8, S.baseTop - 2);
   if (tray) tray = applyFrontText(tray, text, warnings);
   else foot = applyFrontText(foot, text, warnings);

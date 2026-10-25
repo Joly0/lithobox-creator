@@ -11,7 +11,8 @@ import { box, cylinder, prism, roundedRect, squareFrustum, type CrossSection, ty
 import { magnetH, magnetR, pegHeight } from './lid';
 
 export const POWER_WALL = 2.4; // wall of the power base around the shape
-export const POWER_FIT = 0.3; // gap between the shape and the power base pocket
+/** Play between the shape and the battery tray's pocket, per side (a setting). */
+export const powerFit = (p: ParamValues) => num(p, 'powerTrayClearance');
 export const POWER_LEDGE = 2.5; // ledge inside the power base rim that the shape rests on
 export const PILLAR = 12; // pillars the shape rests on
 
@@ -61,7 +62,7 @@ export function powerLayout(
     seat,
     floor,
     inner,
-    wallT: POWER_WALL + POWER_FIT + POWER_LEDGE,
+    wallT: POWER_WALL + powerFit(p) + POWER_LEDGE,
     pillars: shape.pillars,
     pillarRot: shape.pillarRot ?? shape.pillars.map(() => 0),
     pillar: PILLAR,
@@ -184,10 +185,10 @@ export function buildPowerTray(
 /** Round battery tray under a round base of radius `rBase` (cylinder, shade, ball). */
 export function roundTray(k: Kernel, p: ParamValues, rBase: number, P: PowerLayout): Manifold {
   const circle = (r: number) => k.CrossSection.circle(r);
-  const grow = POWER_WALL + POWER_FIT;
+  const grow = POWER_WALL + powerFit(p);
   return buildPowerTray(k, p, P, {
     outer: circle(rBase + grow),
-    pocket: circle(rBase + POWER_FIT),
+    pocket: circle(rBase + powerFit(p)),
     open: circle(rBase - POWER_LEDGE),
     front: -(rBase + grow),
     back: rBase + grow,

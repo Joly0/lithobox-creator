@@ -18,13 +18,13 @@ const COLORS = { body: '#c9ccd3', lid: '#e9a23b', power: '#9aa3b5', panel: '#fff
 const CORNERS: [number, number][] = [[1, 1], [-1, 1], [-1, -1], [1, -1]];
 
 function panelEnvelopes(k: Kernel, L: BoxLayout, extraTop: number): Manifold[] {
-  const g = L.gap;
+  const g = L.gap, wg = L.wgap;
   const z0 = L.panelBottom - g;
   const z1 = L.panelTop + extraTop;
   const out: Manifold[] = [];
   for (const s of [1, -1]) {
-    out.push(box(k, [-L.panelW / 2 - g, s * L.planeY - L.thick / 2 - g, z0], [L.panelW / 2 + g, s * L.planeY + L.thick / 2 + g, z1]));
-    out.push(box(k, [s * L.planeX - L.thick / 2 - g, -L.panelD / 2 - g, z0], [s * L.planeX + L.thick / 2 + g, L.panelD / 2 + g, z1]));
+    out.push(box(k, [-L.panelW / 2 - wg, s * L.planeY - L.thick / 2 - g, z0], [L.panelW / 2 + wg, s * L.planeY + L.thick / 2 + g, z1]));
+    out.push(box(k, [s * L.planeX - L.thick / 2 - g, -L.panelD / 2 - wg, z0], [s * L.planeX + L.thick / 2 + g, L.panelD / 2 + wg, z1]));
   }
   return out;
 }
@@ -68,7 +68,7 @@ function buildLid(k: Kernel, p: ParamValues, L: BoxLayout, joint: JointGeometry)
   let lid = prism(roundedRect(k, L.outerX, L.outerY, r), L.lidBottom, L.lidTop);
   const cuts: Manifold[] = panelEnvelopes(k, L, L.gap + 0.3);
   if (bool(p, 'topPanel')) {
-    const g = L.gap;
+    const g = L.wgap;
     const rebateZ = L.lidTop - (L.thick + 0.2);
     cuts.push(box(k, [-L.topW / 2 - g, -L.topD / 2 - g, rebateZ], [L.topW / 2 + g, L.topD / 2 + g, L.lidTop + 1]));
     const ledge = num(p, 'topLedge');

@@ -1,6 +1,6 @@
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { always, fromBox, keys, powerGroup } from '../common/params';
+import { always, clearanceGroup, fromBox, keys, powerGroup } from '../common/params';
 
 /** Base (puck lying in a seat), open stand (upright puck holder behind the picture), or no lamp. */
 export const LIGHTING = ['base', 'stand', 'plain'];
@@ -23,10 +23,11 @@ export const arcGroups: ParamGroup[] = [
       { key: 'panelHeight', type: 'number', default: 100, min: 30, max: 300, step: 0.5, unit: 'mm' },
       { key: 'arcRadius', type: 'number', default: 150, min: 40, max: 1000, step: 1, unit: 'mm' },
       { key: 'panelThickness', type: 'number', default: 3.2, min: 1, max: 8, step: 0.1, unit: 'mm' },
-      fromBox('slotClearance', always),
     ],
   },
   // curved: no colour (it cannot print flat)
+  // play between the parts this shape has
+  clearanceGroup({ slotClearance: always, slotWidthClearance: always, magnetClearance: withBase, bankClearance: withBase, powerTrayClearance: withBase, discClearance: withFoot, holderClearance: withStand }),
   { ...litho, params: litho.params.filter((d) => !COLOUR_KEYS.includes(d.key)) },
   {
     id: 'light',

@@ -1,6 +1,6 @@
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { always, fromBox, keys, powerGroup } from '../common/params';
+import { always, clearanceGroup, fromBox, keys, powerGroup } from '../common/params';
 
 /** With a base (lamp seat, cable) or the cylinder on its own. */
 export const LIGHTING = ['base', 'plain'];
@@ -19,9 +19,10 @@ export const cylinderGroups: ParamGroup[] = [
       { key: 'cylDiameter', type: 'number', default: 100, min: 50, max: 250, step: 0.5, unit: 'mm' },
       { key: 'panelHeight', type: 'number', default: 130, min: 40, max: 300, step: 0.5, unit: 'mm' },
       { key: 'panelThickness', type: 'number', default: 3.2, min: 1, max: 8, step: 0.1, unit: 'mm' },
-      fromBox('slotClearance', always),
     ],
   },
+  // play between the parts this shape has
+  clearanceGroup({ slotClearance: always, magnetClearance: withBase, bankClearance: withBase, powerTrayClearance: withBase, discClearance: withBase }),
   { ...litho, params: litho.params.filter((d) => d.key !== 'lithoSupports' && d.key !== 'lithoSupportSize' && !COLOUR_KEYS.includes(d.key)) },
   {
     id: 'light',

@@ -4,7 +4,7 @@ import { bool, num, round } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
 import { box, prism, roundedRect, toMeshData, type Kernel } from '../../geometry/kernel';
 import { applyFrontText, cableCuts, frontText, lampCuts, puckLamp, slotMatrix } from '../common/base';
-import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, rectTray } from '../common/power';
+import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, rectTray } from '../common/power';
 import { COLORS, type SeatLayout, seatLayout } from './layout';
 import { standGroove } from './stand';
 
@@ -24,7 +24,7 @@ export function buildSeatBase(k: Kernel, p: ParamValues, panelInfo: Message, out
   // a battery tray under the foot, as under the light box; the base text then goes on its front
   let P: PowerLayout | null = null;
   if (bool(p, 'powerBase')) {
-    const grow = 2 * (POWER_WALL + POWER_FIT);
+    const grow = 2 * (POWER_WALL + powerFit(p));
     const corner = (sx: number, sy: number): [number, number] => [sx * (S.outerX / 2 - PILLAR / 2 - 1), sy * (S.outerY / 2 - PILLAR / 2 - 1)];
     P = powerLayout(p, {
       size: [S.outerX + grow, S.outerY + grow],
@@ -39,7 +39,7 @@ export function buildSeatBase(k: Kernel, p: ParamValues, panelInfo: Message, out
   const r = num(p, 'cornerRadius');
   let tray = P ? rectTray(k, p, S.outerX, S.outerY, P) : null;
   const text = P
-    ? frontText(k, p, -P.outerY / 2, powerTextZ(P), P.outerX - 2 * (r + POWER_WALL + POWER_FIT) - 8, P.inner - 4)
+    ? frontText(k, p, -P.outerY / 2, powerTextZ(P), P.outerX - 2 * (r + POWER_WALL + powerFit(p)) - 8, P.inner - 4)
     : frontText(k, p, -S.outerY / 2, S.baseTop / 2, S.outerX - 2 * r - 8, S.baseTop - 2);
   if (tray) tray = applyFrontText(tray, text, warnings);
   else foot = applyFrontText(foot, text, warnings);

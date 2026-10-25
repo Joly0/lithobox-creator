@@ -10,8 +10,8 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { box, cylinder, prism, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, lampCuts, puckLamp, roundSlotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
-import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
-import { FIT, SOCKET_FLOOR } from '../panel/layout';
+import { buildPowerTray, PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
+import { SOCKET_FLOOR } from '../panel/layout';
 import { buildHolder, cylY, type HolderDims, tenon } from '../panel/stand';
 import { arcGroups, withBase, withFoot, withStand } from './params';
 
@@ -31,6 +31,8 @@ export interface ArcLayout {
   rMid: number;
   thick: number;
   gap: number;
+  /** Play along the picture's edges (its width), per side; `gap` is across its thickness. */
+  wgap: number;
   groove: number;
   rim: number;
   width: number;
@@ -64,6 +66,7 @@ export function arcLayout(p: ParamValues): ArcLayout {
   const rIn = rOut - thick;
   const rMid = rOut - thick / 2;
   const gap = num(p, 'slotClearance') / 2;
+  const wgap = num(p, 'slotWidthClearance') / 2;
   const groove = num(p, 'baseGroove');
   const rim = num(p, 'baseRim');
   let half = width / 2 / rMid;
@@ -72,7 +75,7 @@ export function arcLayout(p: ParamValues): ArcLayout {
     warnings.push({ key: 'warn.arcTooBent', vars: { min: round(width / Math.PI + thick / 2) } });
     half = Math.PI / 2;
   }
-  const halfGroove = half + gap / rMid;
+  const halfGroove = half + wgap / rMid;
   const base = withBase(p);
   const stand = withStand(p);
   const baseTop = base || stand ? num(p, 'baseHeight') : groove + FLOOR;
@@ -113,7 +116,7 @@ export function arcLayout(p: ParamValues): ArcLayout {
   }
   let power: PowerLayout | null = null;
   if (base && bool(p, 'powerBase')) {
-    const rG = rOut + gap + rim, h = PILLAR / 2, grow = POWER_WALL + POWER_FIT;
+    const rG = rOut + gap + rim, h = PILLAR / 2, grow = POWER_WALL + powerFit(p);
     // a pillar near each corner of the base: the back ones in its back corners, the front
     // ones where the curve meets the sides
     const px = xHalf - 1 - h;
@@ -129,7 +132,7 @@ export function arcLayout(p: ParamValues): ArcLayout {
       baseTop,
     }, warnings);
   }
-  return { rOut, rIn, rMid, thick, gap, groove, rim, width, height, half, halfGroove, baseTop, panelBottom, panelTop: panelBottom + height, xHalf, yBack, lampY, holder, cable, power, warnings };
+  return { rOut, rIn, rMid, thick, gap, wgap, groove, rim, width, height, half, halfGroove, baseTop, panelBottom, panelTop: panelBottom + height, xHalf, yBack, lampY, holder, cable, power, warnings };
 }
 
 /** Wedge from the axis, between angles a0 and a1 (0 = straight towards -Y, positive = +x). */
@@ -163,10 +166,10 @@ function baseOutline(k: Kernel, L: ArcLayout) {
 /** Battery tray under the base, following its outline. */
 function buildTray(k: Kernel, p: ParamValues, L: ArcLayout, P: PowerLayout): Manifold {
   const foot = baseOutline(k, L);
-  const rG = L.rOut + L.gap + L.rim, grow = POWER_WALL + POWER_FIT;
+  const rG = L.rOut + L.gap + L.rim, grow = POWER_WALL + powerFit(p);
   return buildPowerTray(k, p, P, {
     outer: foot.offset(grow, 'Round'),
-    pocket: foot.offset(POWER_FIT, 'Round'),
+    pocket: foot.offset(powerFit(p), 'Round'),
     open: foot.offset(-POWER_LEDGE, 'Round'),
     front: -(rG + grow),
     back: L.yBack + grow,
@@ -188,7 +191,7 @@ function buildBase(k: Kernel, p: ParamValues, L: ArcLayout): Manifold {
 function buildStandFoot(k: Kernel, p: ParamValues, L: ArcLayout, S: HolderDims): Manifold {
   const rG = L.rOut + L.gap + L.rim;
   const outline = cylinder(k, 0, 0, 0, L.baseTop, rG).intersect(box(k, [-L.xHalf, -rG - 1, -1], [L.xHalf, L.yBack, L.baseTop + 1]));
-  return outline.subtract(k.Manifold.union([grooveCut(k, L), tenon(k, p, S, FIT / 2)]));
+  return outline.subtract(k.Manifold.union([grooveCut(k, L), tenon(k, p, S, num(p, 'holderClearance'))]));
 }
 
 /** Without a base: a short block under each end of the arc. */
@@ -248,7 +251,7 @@ export const arcShape: ShapeDefinition = {
       const P = L.power;
       let tray = P ? buildTray(k, p, L, P) : null;
       // text bent along the curved front of the base, or of the battery tray, as far round as it reaches
-      const grow = POWER_WALL + POWER_FIT;
+      const grow = POWER_WALL + powerFit(p);
       const tr = P ? rG + grow : rG;
       const along = 2 * tr * Math.asin(Math.min(1, (L.xHalf + (P ? grow : 0)) / tr)) - 8;
       const t = P ? curvedText(k, p, 0, 0, tr, powerTextZ(P), along, P.inner - 4) : curvedText(k, p, 0, 0, rG, L.baseTop / 2, along, L.baseTop - 2);

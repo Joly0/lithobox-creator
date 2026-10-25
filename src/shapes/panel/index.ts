@@ -12,18 +12,18 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { box, prism, roundedRect, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
 import { applyFrontText, cableCuts, frontText, lampCuts, puckLamp, slotMatrix } from '../common/base';
-import { POWER_FIT, POWER_WALL, powerTextZ, powerUnderside, pushPowerInfo, rectTray } from '../common/power';
+import { powerFit, POWER_WALL, powerTextZ, powerUnderside, pushPowerInfo, rectTray } from '../common/power';
 import { applyLidJoint, jointGeometry, type JointGeometry } from '../common/lid';
 import { lightBox, lightFrame, lightStand, panelGroups } from './params';
 import { hangingLoop } from '../common/outlines';
-import { COLORS, FIT, LIP, type PanelLayout, panelLayout, standLayout } from './layout';
+import { COLORS, LIP, type PanelLayout, panelLayout, standLayout } from './layout';
 import { buildStand } from './stand';
 import { buildFrame } from './frame';
 
 /** The picture plus its clearance: the groove it slides into. */
 function envelope(k: Kernel, L: PanelLayout): Manifold {
-  const g = L.gap;
-  return box(k, [-L.panelW / 2 - g, L.planeY - L.thick / 2 - g, L.panelBottom - g], [L.panelW / 2 + g, L.planeY + L.thick / 2 + g, L.panelTop + g]);
+  const g = L.gap, wg = L.wgap;
+  return box(k, [-L.panelW / 2 - wg, L.planeY - L.thick / 2 - g, L.panelBottom - g], [L.panelW / 2 + wg, L.planeY + L.thick / 2 + g, L.panelTop + g]);
 }
 
 function footprint(k: Kernel, p: ParamValues, L: PanelLayout) {
@@ -34,7 +34,8 @@ function buildBase(k: Kernel, p: ParamValues, L: PanelLayout, joint: JointGeomet
   const foot = footprint(k, p, L);
   const base = prism(foot, 0, L.baseTop);
   // ledge round the sides and back where the hood walls stand
-  const keep = box(k, [-L.outerX / 2 + L.wall + FIT, -L.outerY / 2 - 1, L.hoodBottom - 1], [L.outerX / 2 - L.wall - FIT, L.outerY / 2 - L.wall - FIT, L.baseTop + 2]);
+  const fit = num(p, 'hoodClearance');
+  const keep = box(k, [-L.outerX / 2 + L.wall + fit, -L.outerY / 2 - 1, L.hoodBottom - 1], [L.outerX / 2 - L.wall - fit, L.outerY / 2 - L.wall - fit, L.baseTop + 2]);
   const ledge = prism(foot, L.hoodBottom, L.baseTop + 1).subtract(keep);
   const cuts = [ledge, envelope(k, L), ...lampCuts(k, p, L.lampY, L.baseTop), ...cableCuts(k, p, L.cable, L.lampY, L.baseTop, L.outerY / 2), ...joint.bodyCuts];
   if (L.power) cuts.push(...powerUnderside(k, p, L.power));
@@ -104,7 +105,7 @@ export const panelShape: ShapeDefinition = {
     const r = num(p, 'cornerRadius');
     let tray = P ? rectTray(k, p, L.outerX, L.outerY, P) : null;
     const text = P
-      ? frontText(k, p, -P.outerY / 2, powerTextZ(P), P.outerX - 2 * (r + POWER_WALL + POWER_FIT) - 8, P.inner - 4)
+      ? frontText(k, p, -P.outerY / 2, powerTextZ(P), P.outerX - 2 * (r + POWER_WALL + powerFit(p)) - 8, P.inner - 4)
       : frontText(k, p, -L.outerY / 2, L.baseTop / 2, L.outerX - 2 * r - 8, L.baseTop - 2);
     if (tray) tray = applyFrontText(tray, text, warnings);
     else base = applyFrontText(base, text, warnings);

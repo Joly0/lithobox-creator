@@ -1,6 +1,6 @@
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { fromBox, keys, powerGroup } from '../common/params';
+import { clearanceGroup, fromBox, keys, powerGroup } from '../common/params';
 
 /** Standing on its own cut rim (over an existing lamp fitting), or in a base with a lamp. */
 export const MOUNTS = ['standalone', 'base'];
@@ -28,10 +28,11 @@ export const sphereGroups: ParamGroup[] = [
       { key: 'frontBlend', type: 'number', default: 50, min: 0, max: 100, step: 5, unit: '%', visibleIf: (p) => p.projection !== 'conformal' },
       // a second photo on the back half (seen from behind)
       { key: 'backPhoto', type: 'bool', default: false, visibleIf: (p) => p.projection === 'front' },
-      fromBox('slotClearance', onBase),
     ],
   },
   // a ball stands on its own while it prints: no support fins
+  // play between the parts this shape has
+  clearanceGroup({ slotClearance: onBase, magnetClearance: basePuck, bankClearance: basePuck, powerTrayClearance: basePuck, discClearance: basePuck }),
   { ...litho, params: litho.params.filter((d) => d.key !== 'lithoSupports' && d.key !== 'lithoSupportSize' && !COLOUR_KEYS.includes(d.key)) },
   {
     id: 'light',

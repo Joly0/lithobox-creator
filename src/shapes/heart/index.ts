@@ -23,11 +23,13 @@ const COLORS = { litho: '#f4ead7', panel: '#fff4dc' };
  * shows when it would for either of them (so its own conditions, a toggle above it, still hold).
  */
 const baseLight = (p: ParamValues) => p.lighting === 'base';
-const BASE_GROUPS = new Set(['base', 'cable', 'text', 'power']);
-const BASE_KEYS = new Set(['slotClearance', 'cornerRadius', 'faceInset']);
+const BASE_GROUPS = new Set(['base', 'cable', 'text', 'power', 'clearances']);
+const BASE_KEYS = new Set(['cornerRadius', 'faceInset']);
+// the stand's holder, the light box's hood and the frame's insert are not on the open foot
+const NOT_ON_BASE = new Set(['holderClearance', 'hoodClearance', 'frameClearance']);
 const withBase = (d: ParamDef): ParamDef => {
   const vis = d.visibleIf;
-  if (!vis) return d;
+  if (!vis || NOT_ON_BASE.has(d.key)) return d;
   return { ...d, visibleIf: (p) => vis(p) || (baseLight(p) && (vis({ ...p, lighting: 'box' }) || vis({ ...p, lighting: 'stand' }))) } as ParamDef;
 };
 
@@ -38,7 +40,7 @@ export const heartGroups: ParamGroup[] = panelGroups.map((g) => {
       ...g,
       params: [
         // a heart-shaped picture has no photo format
-        ...g.params.filter((d) => d.key !== 'picFormat').map((d) => (d.key === 'panelWidth' ? { ...d, default: 120 } : d.key === 'panelHeight' ? { ...d, default: 110 } : d.key === 'slotClearance' ? withBase(d) : d) as ParamDef),
+        ...g.params.filter((d) => d.key !== 'picFormat').map((d) => (d.key === 'panelWidth' ? { ...d, default: 120 } : d.key === 'panelHeight' ? { ...d, default: 110 } : d) as ParamDef),
         { key: 'heartFlat', type: 'number', default: 25, min: 0, max: 80, step: 1, unit: 'mm' },
       ],
     };

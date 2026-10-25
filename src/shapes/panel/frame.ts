@@ -11,7 +11,6 @@ const FRAME_LIP = 2;
 const FRAME_LIP_OVER = 3;
 const FRAME_BACK = 2.4;
 const FRAME_INSERT = 2;
-const FRAME_FIT = 0.2;
 /** Foot: height, groove depth, how far it reaches in front of and behind the frame. */
 const FOOT_H = 8;
 const FOOT_GROOVE = 5;
@@ -25,6 +24,9 @@ const FOOT_REACH = 20;
 export function buildFrame(k: Kernel, p: ParamValues, panelInfo: Message): BuildResult {
   const W = num(p, 'panelWidth'), H = num(p, 'panelHeight'), T = num(p, 'panelThickness');
   const g = num(p, 'slotClearance') / 2;
+  // the picture's edges and the back insert in the frame's room
+  const wg = num(p, 'slotWidthClearance') / 2;
+  const FRAME_FIT = num(p, 'frameClearance');
   const rim = num(p, 'frameRim'), D = num(p, 'frameDepth'), strip = num(p, 'stripWidth');
   const foot = bool(p, 'frameFoot');
   const Wo = W + 2 * rim, Ho = H + 2 * rim;
@@ -33,7 +35,7 @@ export function buildFrame(k: Kernel, p: ParamValues, panelInfo: Message): Build
   // y: the frame's front at y0, its back (where the back plate starts) at y1
   const y0 = -D / 2, y1 = D / 2 - FRAME_BACK;
   const yPic = y0 + FRAME_LIP + g + T / 2;
-  const cav = (grow: number, ya: number, yb: number) => box(k, [-W / 2 - g - grow, ya, zc - H / 2 - g - grow], [W / 2 + g + grow, yb, zc + H / 2 + g + grow]);
+  const cav = (grow: number, ya: number, yb: number) => box(k, [-W / 2 - wg - grow, ya, zc - H / 2 - wg - grow], [W / 2 + wg + grow, yb, zc + H / 2 + wg + grow]);
   const outer = box(k, [-Wo / 2, y0, z0], [Wo / 2, y1, z0 + Ho]);
   // the window in front, the room for the picture and the insert behind
   const window = box(k, [-W / 2 + FRAME_LIP_OVER, y0 - 1, zc - H / 2 + FRAME_LIP_OVER], [W / 2 - FRAME_LIP_OVER, y0 + FRAME_LIP + 0.01, zc + H / 2 - FRAME_LIP_OVER]);

@@ -1,6 +1,6 @@
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { fromBox, keys, powerGroup } from '../common/params';
+import { always, clearanceGroup, fromBox, keys, powerGroup } from '../common/params';
 
 export const SHADES = ['cone', 'cylinder'];
 /** Hung from a ceiling socket, standing on a base with a lamp in it, or on a lamp foot's socket. */
@@ -29,10 +29,11 @@ export const shadeGroups: ParamGroup[] = [
       { key: 'bottomDiameter', type: 'number', default: 180, min: 50, max: 300, step: 0.5, unit: 'mm', visibleIf: cone },
       { key: 'panelHeight', type: 'number', default: 150, min: 40, max: 300, step: 0.5, unit: 'mm' },
       fromBox('panelThickness', () => true),
-      fromBox('slotClearance', (p) => table(p) || foot(p)),
     ],
   },
   // a shade stands on its own while it prints: no support fins
+  // play between the parts this shape has
+  clearanceGroup({ slotClearance: (p) => table(p) || foot(p), magnetClearance: tablePuck, bankClearance: tablePuck, powerTrayClearance: tablePuck, discClearance: tablePuck, spiderClearance: always }),
   { ...litho, params: litho.params.filter((d) => d.key !== 'lithoSupports' && d.key !== 'lithoSupportSize' && !COLOUR_KEYS.includes(d.key)) },
   {
     id: 'light',

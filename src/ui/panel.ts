@@ -74,6 +74,14 @@ export class ParamPanel {
       const sum = document.createElement('summary');
       sum.textContent = t(shapeKey(s, `group.${g.id}`));
       det.append(sum);
+      // a short note on what the group's settings mean, where one is written
+      const hintKey = shapeKey(s, `group.${g.id}.hint`);
+      if (has(hintKey)) {
+        const hint = document.createElement('p');
+        hint.className = 'hint';
+        hint.textContent = t(hintKey);
+        det.append(hint);
+      }
       for (const def of g.params) det.append(this.row(def));
       this.host.append(det);
     }

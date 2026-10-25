@@ -1,7 +1,7 @@
 import { formatParam } from '../../core/format';
 import type { ParamGroup } from '../../core/types';
 import { boxGroups } from '../box/params';
-import { always, fromBox } from '../common/params';
+import { always, clearanceGroup, fromBox } from '../common/params';
 
 export const SIDES = ['3', '5', '6', '8'];
 
@@ -16,11 +16,14 @@ export const polygonGroups: ParamGroup[] = [
       formatParam,
       { key: 'panelWidth', type: 'number', default: 80, min: 30, max: 250, step: 0.5, unit: 'mm' },
       { key: 'panelHeight', type: 'number', default: 100, min: 30, max: 300, step: 0.5, unit: 'mm' },
-      ...box('panelThickness', 'slotClearance', 'slotEngage'),
+      ...box('panelThickness', 'slotEngage'),
     ],
   },
+  // play between the parts this shape has
+  clearanceGroup({ slotClearance: always, slotWidthClearance: always, plugClearance: always, magnetClearance: always, bankClearance: always, powerTrayClearance: always, discClearance: always }),
   group('litho'),
-  group('frame'),
+  // the polygon's plugs hold the magnets with 14 mm posts
+  { ...group('frame'), params: group('frame').params.map((d) => (d.key === 'postSize' ? fromBox('postSize', always, { default: 14 }) : d)) },
   group('base'),
   group('cable'),
   // the box's lid and closures

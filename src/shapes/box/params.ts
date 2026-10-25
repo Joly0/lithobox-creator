@@ -41,8 +41,29 @@ export const boxGroups: ParamGroup[] = [
       { key: 'sideWidth', type: 'number', default: 156, min: 40, max: 300, step: 0.5, unit: 'mm', visibleIf: rect },
       { key: 'panelThickness', type: 'number', default: 3.2, min: 1, max: 8, step: 0.1, unit: 'mm' },
       { key: 'topPanel', type: 'bool', default: true },
-      { key: 'slotClearance', type: 'number', default: 0.6, min: 0, max: 1.5, step: 0.05, unit: 'mm', advanced: true },
       { key: 'slotEngage', type: 'number', default: 4, min: 2, max: 10, step: 0.5, unit: 'mm', advanced: true },
+    ],
+  },
+  {
+    // play between parts that fit into each other, 0.05 mm per side looser than an exact fit;
+    // other shapes take theirs with clearanceGroup (src/shapes/common/params.ts). The last four
+    // belong to lightings and mounts the box does not have, so it never shows them.
+    id: 'clearances',
+    params: [
+      { key: 'slotClearance', type: 'number', default: 0.7, min: 0, max: 2, step: 0.05, unit: 'mm' },
+      { key: 'slotWidthClearance', type: 'number', default: 0.7, min: 0, max: 3, step: 0.05, unit: 'mm' },
+      { key: 'plugClearance', type: 'number', default: 0.2, min: 0, max: 1, step: 0.05, unit: 'mm', visibleIf: joint('plugMagnet', 'plug', 'pegs') },
+      { key: 'magnetClearance', type: 'number', default: 0.2, min: 0, max: 0.6, step: 0.05, unit: 'mm', visibleIf: magnets },
+      { key: 'bankClearance', type: 'number', default: 1.1, min: 0, max: 5, step: 0.1, unit: 'mm', visibleIf: pocket },
+      { key: 'powerTrayClearance', type: 'number', default: 0.35, min: 0, max: 1, step: 0.05, unit: 'mm', visibleIf: power },
+      { key: 'discClearance', type: 'number', default: 0.25, min: 0, max: 1, step: 0.05, unit: 'mm', visibleIf: disc },
+      { key: 'holderClearance', type: 'number', default: 0.2, min: 0, max: 1, step: 0.05, unit: 'mm', visibleIf: (p) => p.lighting === 'stand' },
+      { key: 'hoodClearance', type: 'number', default: 0.35, min: 0, max: 1, step: 0.05, unit: 'mm', visibleIf: (p) => p.lighting === 'box' },
+      { key: 'frameClearance', type: 'number', default: 0.25, min: 0, max: 1, step: 0.05, unit: 'mm', visibleIf: (p) => p.lighting === 'frame' },
+      {
+        key: 'spiderClearance', type: 'number', default: 0.35, min: 0, max: 1, step: 0.05, unit: 'mm',
+        visibleIf: (p) => (p.mount === 'pendant' && p.spider === 'separate') || (p.mount === 'foot' && p.spiderEdge === 'top'),
+      },
     ],
   },
   {
@@ -68,7 +89,8 @@ export const boxGroups: ParamGroup[] = [
   {
     id: 'frame',
     params: [
-      { key: 'postSize', type: 'number', default: 14, min: 8, max: 30, step: 0.5, unit: 'mm' },
+      // 14.5: the corner plug holds a magnet with the default plug and magnet clearances
+      { key: 'postSize', type: 'number', default: 14.5, min: 8, max: 30, step: 0.5, unit: 'mm' },
       { key: 'cornerRadius', type: 'number', default: 3, min: 0, max: 12, step: 0.5, unit: 'mm' },
       { key: 'faceInset', type: 'number', default: 1.5, min: 0.8, max: 6, step: 0.1, unit: 'mm', advanced: true },
     ],
@@ -107,10 +129,8 @@ export const boxGroups: ParamGroup[] = [
       { key: 'lidGroove', type: 'number', default: 3, min: 1, max: 8, step: 0.5, unit: 'mm', advanced: true },
       { key: 'plugDepth', type: 'number', default: 4, min: 2, max: 25, step: 0.5, unit: 'mm', visibleIf: joint('plugMagnet', 'plug') },
       { key: 'plugTaper', type: 'number', default: 1, min: 0, max: 10, step: 0.5, unit: 'deg', advanced: true, visibleIf: joint('plugMagnet', 'plug') },
-      { key: 'plugClearance', type: 'number', default: 0.15, min: 0, max: 1, step: 0.05, unit: 'mm', visibleIf: joint('plugMagnet', 'plug', 'pegs') },
       { key: 'magnetDiameter', type: 'number', default: 5, min: 2, max: 15, step: 0.5, unit: 'mm', visibleIf: magnets },
       { key: 'magnetHeight', type: 'number', default: 2, min: 1, max: 10, step: 0.5, unit: 'mm', visibleIf: magnets },
-      { key: 'magnetClearance', type: 'number', default: 0.15, min: 0, max: 0.6, step: 0.05, unit: 'mm', visibleIf: magnets, advanced: true },
       { key: 'latchLength', type: 'number', default: 10, min: 5, max: 25, step: 0.5, unit: 'mm', visibleIf: joint('latch') },
       { key: 'latchThickness', type: 'number', default: 1.6, min: 0.8, max: 3, step: 0.1, unit: 'mm', visibleIf: joint('latch'), advanced: true },
       { key: 'latchHook', type: 'number', default: 0.8, min: 0.3, max: 2, step: 0.1, unit: 'mm', visibleIf: joint('latch') },
@@ -143,7 +163,6 @@ export const boxGroups: ParamGroup[] = [
       { key: 'bankPocket', type: 'bool', default: false, visibleIf: power, advanced: true },
       { key: 'bankWidth', type: 'number', default: 75, min: 20, max: 250, step: 0.5, unit: 'mm', visibleIf: pocket, advanced: true },
       { key: 'bankLength', type: 'number', default: 150, min: 20, max: 280, step: 0.5, unit: 'mm', visibleIf: pocket, advanced: true },
-      { key: 'bankClearance', type: 'number', default: 1, min: 0, max: 5, step: 0.5, unit: 'mm', visibleIf: pocket, advanced: true },
       { key: 'switchType', type: 'select', default: 'none', options: ['none', 'rocker', 'slide', 'round'], visibleIf: power, advanced: true },
       { key: 'switchWidth', type: 'number', default: 19, min: 4, max: 40, step: 0.5, unit: 'mm', visibleIf: sw('rocker'), advanced: true },
       { key: 'switchHeight', type: 'number', default: 13, min: 3, max: 30, step: 0.5, unit: 'mm', visibleIf: sw('rocker'), advanced: true },

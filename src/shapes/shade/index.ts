@@ -13,7 +13,7 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { box, cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
 import { annulus, applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, lampCuts, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
-import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
+import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
 import { cone, foot, footTop, pendant, shadeGroups, table, tablePuck, tableSocket } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', spider: '#e9a23b', litho: '#f4ead7', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -98,7 +98,7 @@ export function shadeLayout(p: ParamValues): ShadeLayout {
   if (tablePuck(p) && bool(p, 'powerBase')) {
     // pillars on the diagonals near the base's rim, as under the ball lamp
     const h = PILLAR / 2, pr = rBase - 1 - h * Math.SQRT2, angles = [45, 135, 225, 315];
-    const grow = 2 * (POWER_WALL + POWER_FIT), ri = rBase - POWER_LEDGE;
+    const grow = 2 * (POWER_WALL + powerFit(p)), ri = rBase - POWER_LEDGE;
     power = powerLayout(p, {
       size: [2 * rBase + grow, 2 * rBase + grow],
       innerW: 2 * ri * 0.85,
@@ -110,14 +110,14 @@ export function shadeLayout(p: ParamValues): ShadeLayout {
     }, warnings);
   }
   if (tableSocket(p) && hole / 2 + 4 > rBi - gap - DRUM_WALL) warnings.push({ key: 'warn.lampTooBig', vars: { max: round(2 * (rBi - gap - DRUM_WALL - 4)) } });
-  if (pendant(p) && spiderRing({ rBi, rTi, slope, top: height, bottom: 0 }) - RING_W < hole / 2 + HUB + 2) warnings.push({ key: 'warn.spiderNoFit' });
+  if (pendant(p) && spiderRing({ rBi, rTi, slope, top: height, bottom: 0 }, num(p, 'spiderClearance')) - RING_W < hole / 2 + HUB + 2) warnings.push({ key: 'warn.spiderNoFit' });
   if (foot(p)) {
     // the bulb stands on the socket ring: it must stay inside the shade, under a top spider's ring
     const [, bl] = BULB[str(p, 'socket') === 'e14' ? 'e14' : 'e27'];
     const room = height - (footTop(p) ? LIP_T + RING_H : 0) - bl;
     if (num(p, 'ringHeight') > room) warnings.push({ key: 'warn.ringTooHigh', vars: { max: round(Math.max(0, room)) } });
     const plateFits = footTop(p)
-      ? spiderRing({ rBi, rTi, slope, top: bottom + height, bottom }) - RING_W >= hole / 2 + HUB + 2
+      ? spiderRing({ rBi, rTi, slope, top: bottom + height, bottom }, num(p, 'spiderClearance')) - RING_W >= hole / 2 + HUB + 2
       : backAt({ rBi, slope, bottom }, bottom + num(p, 'ringHeight')) - 1 >= hole / 2 + HUB;
     if (!plateFits) warnings.push({ key: footTop(p) ? 'warn.spiderNoFit' : 'warn.plateNoFit' });
   }
@@ -134,8 +134,8 @@ const backAt = (L: Pick<ShadeLayout, 'rBi' | 'slope' | 'bottom'>, z: number) => 
  * The separate spider's ring: as wide as it can be and still pass up to the rim from below
  * (the narrowest point on its way), with a little play.
  */
-function spiderRing(L: Pick<ShadeLayout, 'rBi' | 'rTi' | 'slope' | 'top' | 'bottom'>): number {
-  return Math.min(backAt(L, L.top - LIP_T), L.rBi) - 0.3;
+function spiderRing(L: Pick<ShadeLayout, 'rBi' | 'rTi' | 'slope' | 'top' | 'bottom'>, play: number): number {
+  return Math.min(backAt(L, L.top - LIP_T), L.rBi) - play;
 }
 
 /** Hub round the socket hole and spokes out to radius `reach`, from z0 to z1. */
@@ -155,7 +155,7 @@ function lip(k: Kernel, L: ShadeLayout): Manifold {
 
 /** The spider on its own: a ring that sits under the rim, spokes, the hub the socket clamps. */
 function separateSpider(k: Kernel, p: ParamValues, L: ShadeLayout): Manifold {
-  const ro = spiderRing(L);
+  const ro = spiderRing(L, num(p, 'spiderClearance'));
   const z1 = L.top - LIP_T, z0 = z1 - RING_H;
   return annulus(k, ro - RING_W, ro, z0, z1).add(hubAndSpokes(k, p, L, ro - RING_W + 1, z0, z1));
 }
@@ -171,7 +171,7 @@ function footSpider(k: Kernel, p: ParamValues, L: ShadeLayout): { solid: Manifol
   const plate = L.bottom + num(p, 'ringHeight');
   let ring: Manifold, ri: number, z0: number, z1: number;
   if (footTop(p)) {
-    const ro = spiderRing(L);
+    const ro = spiderRing(L, num(p, 'spiderClearance'));
     ri = ro - RING_W;
     z1 = L.top - LIP_T;
     z0 = z1 - RING_H;
@@ -265,7 +265,7 @@ export const shadeShape: ShapeDefinition = {
       const P = L.power;
       let tray = P ? roundTray(k, p, L.rBase, P) : null;
       // with a tray the text goes on its front, else on the base
-      const tr = P ? L.rBase + POWER_WALL + POWER_FIT : L.rBase;
+      const tr = P ? L.rBase + POWER_WALL + powerFit(p) : L.rBase;
       const arc = ((2 * Math.PI) / 3) * tr - 8;
       const t = P ? curvedText(k, p, 0, 0, tr, powerTextZ(P), arc, P.inner - 4) : curvedText(k, p, 0, 0, L.rBase, L.baseTop / 2, arc, Math.min(L.baseTop - 2, 20));
       if (tray) tray = applyFrontText(tray, t, warnings);

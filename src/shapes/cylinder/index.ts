@@ -9,7 +9,7 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { annulus, applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, lampCuts, lidText, puckLamp, ringText, roundSlotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
-import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
+import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
 import { cylinderGroups, withBase } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', ring: '#e9a23b', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -77,7 +77,7 @@ export function cylinderLayout(p: ParamValues): CylinderLayout {
     // four pillars on the diagonals, turned with them, 1 mm inside the base's edge
     const pr = rBase - 1 - h * Math.SQRT2;
     const angles = [45, 135, 225, 315];
-    const grow = 2 * (POWER_WALL + POWER_FIT);
+    const grow = 2 * (POWER_WALL + powerFit(p));
     power = powerLayout(p, {
       size: [2 * rBase + grow, 2 * rBase + grow],
       // the front wall is curved: the switch has to stay within the straighter middle
@@ -136,7 +136,7 @@ export const cylinderShape: ShapeDefinition = {
       const P = L.power;
       let tray = P ? roundTray(k, p, L.rBase, P) : null;
       // text bent round the base's front, or round the battery tray's when there is one
-      const tr = L.rBase + POWER_WALL + POWER_FIT;
+      const tr = L.rBase + POWER_WALL + powerFit(p);
       const t = P
         ? curvedText(k, p, 0, 0, tr, powerTextZ(P), TEXT_ARC * tr - 8, P.inner - 4)
         : curvedText(k, p, 0, 0, L.rBase, L.baseTop / 2, TEXT_ARC * L.rBase - 8, L.baseTop - 2);
