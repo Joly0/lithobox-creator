@@ -686,5 +686,24 @@ onLanguageChange(translateStatic);
 translateStatic();
 rebuild();
 
+// The view's toggles are also kept in this browser: Firefox brings them back only on a plain
+// reload, not a hard one or a fresh visit. Set before the replay, which then applies them.
+const VIEW_KEY = 'viewToggles';
+const viewToggles = staticInputs.filter((el) => el.type === 'checkbox' && el.closest('.viewbar'));
+try {
+  const kept = JSON.parse(localStorage.getItem(VIEW_KEY) ?? '{}') as Record<string, boolean>;
+  for (const el of viewToggles) if (typeof kept[el.id] === 'boolean') el.checked = kept[el.id];
+} catch {
+  /* private mode, or nothing kept yet */
+}
+for (const el of viewToggles)
+  el.addEventListener('change', () => {
+    try {
+      localStorage.setItem(VIEW_KEY, JSON.stringify(Object.fromEntries(viewToggles.map((x) => [x.id, x.checked]))));
+    } catch {
+      /* private mode */
+    }
+  });
+
 // a reload can bring back ticked boxes and moved sliders: apply them like a click would
 replayRestored(staticInputs);
