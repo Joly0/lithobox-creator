@@ -1,6 +1,7 @@
 import type { ParamGroup } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { fromBox, keys, LIGHTING, withBase } from '../cylinder/params';
+import { fromBox, keys } from '../common/params';
+import { LIGHTING, withBase } from '../cylinder/params';
 
 export { withBase };
 
@@ -41,13 +42,13 @@ export const arcGroups: ParamGroup[] = [
   {
     // text bent along the base's curved front (the feet have no room for it)
     id: 'text',
-    params: [...keys(withBase, 'baseText', 'baseTextStyle', 'baseTextSize', 'textFont', 'textDepth'), fromBox('textSecondColor')],
+    params: [...keys(withBase, 'baseText', 'baseTextStyle', 'baseTextSize', 'textFont', 'textDepth'), fromBox('textSecondColor', withBase)],
   },
   // battery tray under the base, following its outline
   {
     id: 'power',
     params: [
-      ...boxGroups.find((g) => g.id === 'power')!.params.map((d) => fromBox(d.key)),
+      ...boxGroups.find((g) => g.id === 'power')!.params.map((d) => fromBox(d.key, withBase)),
       // no lid here: the magnets and pegs between base and tray get their sizes in this group
       ...['magnetDiameter', 'magnetHeight', 'magnetClearance'].map((k) => fromBox(k, withBase, { visibleIf: (p) => withBase(p) && p.powerBase === true && p.powerJoint === 'magnets' })),
       fromBox('pegSize', withBase, { visibleIf: (p) => withBase(p) && p.powerBase === true && p.powerJoint === 'pegs' }),

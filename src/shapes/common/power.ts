@@ -7,7 +7,7 @@
 // the pillar centres, and where the tray's front and back are; the rest is shared.
 import { bool, num, str } from '../../core/shape';
 import type { Message, ParamValues } from '../../core/types';
-import { box, cylinder, prism, squareFrustum, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
+import { box, cylinder, prism, roundedRect, squareFrustum, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
 import { magnetH, magnetR, pegHeight } from './lid';
 
 export const POWER_WALL = 2.4; // wall of the power base around the shape
@@ -173,6 +173,35 @@ export function buildPowerTray(
   }
   if (holes.length) tray = tray.subtract(k.Manifold.union(holes));
   return tray;
+}
+
+/** Round battery tray under a round base of radius `rBase` (cylinder, shade, ball). */
+export function roundTray(k: Kernel, p: ParamValues, rBase: number, P: PowerLayout): Manifold {
+  const circle = (r: number) => k.CrossSection.circle(r);
+  const grow = POWER_WALL + POWER_FIT;
+  return buildPowerTray(k, p, P, {
+    outer: circle(rBase + grow),
+    pocket: circle(rBase + POWER_FIT),
+    open: circle(rBase - POWER_LEDGE),
+    front: -(rBase + grow),
+    back: rBase + grow,
+    innerBack: rBase - POWER_LEDGE,
+    clip: true,
+  });
+}
+
+/** Battery tray round a rounded rectangle outerX by outerY (the box's body, a light box's base). */
+export function rectTray(k: Kernel, p: ParamValues, outerX: number, outerY: number, P: PowerLayout): Manifold {
+  const r = num(p, 'cornerRadius');
+  const rim = (P.outerX - outerX) / 2; // wall + fit around the shape
+  return buildPowerTray(k, p, P, {
+    outer: roundedRect(k, P.outerX, P.outerY, r + rim),
+    pocket: roundedRect(k, outerX + 0.6, outerY + 0.6, r + 0.3),
+    open: roundedRect(k, P.outerX - 2 * P.wallT, P.outerY - 2 * P.wallT, Math.max(1, r - 2)),
+    front: -P.outerY / 2,
+    back: P.outerY / 2,
+    innerBack: P.outerY / 2 - P.wallT,
+  });
 }
 
 /** Magnet pockets or peg holes in the shape's underside, over the tray's pillars. */

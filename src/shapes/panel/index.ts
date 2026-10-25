@@ -8,12 +8,12 @@
 //
 // Model space: millimetres, Z up, centred on x = 0, standing on z = 0, picture facing -Y.
 import { bool, num, str, type ShapeDefinition } from '../../core/shape';
-import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput, Vec3 } from '../../core/types';
+import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
 import { box, cylinder, prism, roundedRect, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
 import { round } from '../box/layout';
-import { cableCuts, cableSlot, frontText, lampCuts, type CableSlot } from '../common/base';
-import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, type PowerLayout } from '../common/power';
+import { cableCuts, cableSlot, frontText, lampCuts, slotMatrix, type CableSlot } from '../common/base';
+import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, rectTray, type PowerLayout } from '../common/power';
 import { jointGeometry, jointLayout, type JointGeometry, type JointLayout, type LatchFace, type Socket } from '../common/lid';
 import { lightBox, lightFrame, lightStand, panelGroups } from './params';
 import { hangingLoop } from '../common/outlines';
@@ -261,11 +261,6 @@ function buildBase(k: Kernel, p: ParamValues, L: PanelLayout, joint: JointGeomet
   return body.subtract(k.Manifold.union(cuts));
 }
 
-/** Battery tray under the base: the box's, round the light box's rectangle. */
-function buildTray(k: Kernel, p: ParamValues, L: PanelLayout, P: PowerLayout): Manifold {
-  return rectTray(k, p, L.outerX, L.outerY, P);
-}
-
 function buildHood(k: Kernel, p: ParamValues, L: PanelLayout, joint: JointGeometry): Manifold {
   const foot = footprint(k, p, L);
   const hx = L.outerX / 2, hy = L.outerY / 2;
@@ -285,10 +280,6 @@ function buildHood(k: Kernel, p: ParamValues, L: PanelLayout, joint: JointGeomet
   if (joint.lidAdds.length) hood = hood.add(k.Manifold.union(joint.lidAdds));
   if (joint.lidCuts.length) hood = hood.subtract(k.Manifold.union(joint.lidCuts));
   return hood;
-}
-
-function slotMatrix(origin: Vec3, xAxis: Vec3, yAxis: Vec3, zAxis: Vec3): number[] {
-  return [...xAxis, 0, ...yAxis, 0, ...zAxis, 0, ...origin, 1];
 }
 
 export const panelShape: ShapeDefinition = {
@@ -331,7 +322,7 @@ export const panelShape: ShapeDefinition = {
     // with a battery tray the base text goes on the tray's front, as on the box
     const P = L.power;
     const r = num(p, 'cornerRadius');
-    let tray = P ? buildTray(k, p, L, P) : null;
+    let tray = P ? rectTray(k, p, L.outerX, L.outerY, P) : null;
     const text = P
       ? frontText(k, p, -P.outerY / 2, powerTextZ(P), P.outerX - 2 * (r + POWER_WALL + POWER_FIT) - 8, P.inner - 4)
       : frontText(k, p, -L.outerY / 2, L.baseTop / 2, L.outerX - 2 * r - 8, L.baseTop - 2);
@@ -429,20 +420,6 @@ function buildStand(k: Kernel, p: ParamValues, panelInfo: Message): BuildResult 
   if (P) info.push({ key: 'info.power', vars: { t: round(P.inner - 1) } });
   if (P && str(p, 'powerJoint') === 'magnets') info.push({ key: 'info.powerMagnets', vars: { d: num(p, 'magnetDiameter'), h: num(p, 'magnetHeight') } });
   return { parts, slots: [slot], warnings, info };
-}
-
-/** A battery tray round a rounded rectangle outerX × outerY (the light box's base, the stand's foot). */
-function rectTray(k: Kernel, p: ParamValues, outerX: number, outerY: number, P: PowerLayout): Manifold {
-  const r = num(p, 'cornerRadius');
-  const rim = (P.outerX - outerX) / 2;
-  return buildPowerTray(k, p, P, {
-    outer: roundedRect(k, P.outerX, P.outerY, r + rim),
-    pocket: roundedRect(k, outerX + 0.6, outerY + 0.6, r + 0.3),
-    open: roundedRect(k, P.outerX - 2 * P.wallT, P.outerY - 2 * P.wallT, Math.max(1, r - 2)),
-    front: -P.outerY / 2,
-    back: P.outerY / 2,
-    innerBack: P.outerY / 2 - P.wallT,
-  });
 }
 
 /** LED strip frame: lip over the picture's margin at the front, walls round the back. */

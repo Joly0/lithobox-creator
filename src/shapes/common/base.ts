@@ -2,7 +2,7 @@
 // cable hole and channel, and text on the front. Each shape decides where its base is; these
 // only need the lamp centre, the base top and how far the cable may run.
 import { bool, num, str } from '../../core/shape';
-import type { Message, ParamValues } from '../../core/types';
+import type { Message, ParamValues, Vec3 } from '../../core/types';
 import { cylinder, prism, roundedRect, type Kernel, type Manifold } from '../../geometry/kernel';
 import { textOutline } from '../../geometry/text';
 import { CABLE_PRESETS } from '../box/params';
@@ -164,6 +164,21 @@ export function lidText(k: Kernel, p: ParamValues, zTop: number, maxW: number, m
   const out: LidText = { cut: solid(-d, 1), shrunk: t.shrunk };
   if (str(p, 'topTextStyle') === 'inlay') out.volume = solid(-d, 0);
   return out;
+}
+
+/** A panel slot's matrix: the origin and the panel's x/y/z axes in model space. */
+export function slotMatrix(origin: Vec3, xAxis: Vec3, yAxis: Vec3, zAxis: Vec3): number[] {
+  return [...xAxis, 0, ...yAxis, 0, ...zAxis, 0, ...origin, 1];
+}
+
+/** A round panel's slot matrix: panel x stays x, panel y (the axis) becomes up, the picture's middle faces -Y. */
+export function roundSlotMatrix(z: number): number[] {
+  return [1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, z, 1];
+}
+
+/** Ring between two radii, from z0 to z1 (the outside may lean: rOut1 at the top). */
+export function annulus(k: Kernel, rIn: number, rOut0: number, z0: number, z1: number, rOut1 = rOut0): Manifold {
+  return cylinder(k, 0, 0, z0, z1 - z0, rOut0, rOut1).subtract(cylinder(k, 0, 0, z0 - 1, z1 - z0 + 2, rIn));
 }
 
 /** A placement for lidText: along a ring of radius R round the origin, read from the front (-Y). */

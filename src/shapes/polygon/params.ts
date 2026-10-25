@@ -1,6 +1,6 @@
 import type { ParamGroup } from '../../core/types';
 import { boxGroups } from '../box/params';
-import { fromBox } from '../cylinder/params';
+import { fromBox } from '../common/params';
 
 export const SIDES = ['3', '5', '6', '8'];
 

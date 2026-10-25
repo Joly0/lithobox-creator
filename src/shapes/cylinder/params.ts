@@ -1,22 +1,12 @@
-import type { ParamDef, ParamGroup, ParamValues } from '../../core/types';
+import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
+import { fromBox, keys } from '../common/params';
 
 /** With a base (lamp seat, cable) or the cylinder on its own. */
 export const LIGHTING = ['base', 'plain'];
 
 export const withBase = (p: ParamValues) => p.lighting === 'base';
 
-export type When = (p: ParamValues) => boolean;
-
-/** The box's own definition of a setting, shown only when `when` holds. */
-export function fromBox(key: string, when: When = withBase, over: Partial<ParamDef> = {}): ParamDef {
-  const def = boxGroups.flatMap((g) => g.params).find((d) => d.key === key);
-  if (!def) throw new Error(`no box setting ${key}`);
-  const vis = def.visibleIf;
-  return { ...def, visibleIf: (p) => when(p) && (!vis || vis(p)), ...over } as ParamDef;
-}
-
-export const keys = (when: When, ...k: string[]) => k.map((x) => fromBox(x, when));
 const always = () => true;
 const ring = (p: ParamValues) => p.topRing === true;
 
@@ -63,14 +53,14 @@ export const cylinderGroups: ParamGroup[] = [
       ...keys(withBase, 'baseText', 'baseTextStyle', 'baseTextSize'),
       ...keys(ring, 'topText', 'topTextStyle', 'topTextSize'),
       ...keys(always, 'textFont', 'textDepth'),
-      fromBox('textSecondColor'),
+      fromBox('textSecondColor', withBase),
     ],
   },
   // battery tray under the base, round like it
   {
     id: 'power',
     params: [
-      ...boxGroups.find((g) => g.id === 'power')!.params.map((d) => fromBox(d.key)),
+      ...boxGroups.find((g) => g.id === 'power')!.params.map((d) => fromBox(d.key, withBase)),
       // no lid here: the magnets and pegs between base and tray get their sizes in this group
       ...['magnetDiameter', 'magnetHeight', 'magnetClearance'].map((k) => fromBox(k, withBase, { visibleIf: (p) => withBase(p) && p.powerBase === true && p.powerJoint === 'magnets' })),
       fromBox('pegSize', withBase, { visibleIf: (p) => withBase(p) && p.powerBase === true && p.powerJoint === 'pegs' }),

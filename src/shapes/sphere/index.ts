@@ -10,9 +10,9 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { box, cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
 import { round } from '../box/layout';
-import { cableCuts, cableSlot, curvedText, lampCuts, type CableSlot } from '../common/base';
+import { cableCuts, cableSlot, curvedText, lampCuts, roundSlotMatrix, type CableSlot } from '../common/base';
 import { spherePicture, type SphereProjection } from '../../litho/mesh';
-import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, type PowerLayout } from '../common/power';
+import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, roundTray, type PowerLayout } from '../common/power';
 import { basePuck, baseSocket, onBase, sphereGroups, standalone } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -130,11 +130,6 @@ export function sphereLayout(p: ParamValues): SphereLayout {
   return { rOut, rIn, rMid, thick, gap, c, cutZ, opening, sMid, length, edge, band, projection, half, blend, around, picture, baseTop, rBase, groove, hole, cable, power, warnings };
 }
 
-function slotMatrix(z: number): number[] {
-  // panel x stays x, panel y (the axis) becomes up, the picture's middle faces -Y
-  return [1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, z, 1];
-}
-
 /** The base: a disc with a lamp seat, or a hollow drum with the socket in its plate; the ball's rim in a groove. */
 function buildBase(k: Kernel, p: ParamValues, L: SphereLayout): Manifold {
   // the ball's wall in the groove leans in towards the cut: inside at the cut, outside at the top
@@ -151,20 +146,6 @@ function buildBase(k: Kernel, p: ParamValues, L: SphereLayout): Manifold {
   const cuts = [groove, ...lampCuts(k, p, 0, L.baseTop), ...cableCuts(k, p, L.cable!, 0, L.baseTop, L.rBase)];
   if (L.power) cuts.push(...powerUnderside(k, p, L.power));
   return base.subtract(k.Manifold.union(cuts));
-}
-
-function buildTray(k: Kernel, p: ParamValues, L: SphereLayout, P: PowerLayout): Manifold {
-  const circle = (r: number) => k.CrossSection.circle(r);
-  const grow = POWER_WALL + POWER_FIT;
-  return buildPowerTray(k, p, P, {
-    outer: circle(L.rBase + grow),
-    pocket: circle(L.rBase + POWER_FIT),
-    open: circle(L.rBase - POWER_LEDGE),
-    front: -(L.rBase + grow),
-    back: L.rBase + grow,
-    innerBack: L.rBase - POWER_LEDGE,
-    clip: true,
-  });
 }
 
 export const sphereShape: ShapeDefinition = {
@@ -188,7 +169,7 @@ export const sphereShape: ShapeDefinition = {
     if (onBase(p)) {
       let base = buildBase(k, p, L);
       const P = L.power;
-      let tray = P ? buildTray(k, p, L, P) : null;
+      let tray = P ? roundTray(k, p, L.rBase, P) : null;
       const tr = P ? L.rBase + POWER_WALL + POWER_FIT : L.rBase;
       const arc = ((2 * Math.PI) / 3) * tr - 8;
       const t = P ? curvedText(k, p, 0, 0, tr, powerTextZ(P), arc, P.inner - 4) : curvedText(k, p, 0, 0, L.rBase, L.baseTop / 2, arc, Math.min(L.baseTop - 2, 20));
@@ -220,7 +201,7 @@ export const sphereShape: ShapeDefinition = {
       width: 2 * Math.PI * L.rMid,
       height: L.length,
       thickness: L.thick,
-      matrix: slotMatrix(centre),
+      matrix: roundSlotMatrix(centre),
       wrap: { radius: L.rIn, sphere: { sMid: L.sMid, band: L.band, edge: L.edge, cutY: -L.c, hole, projection: L.projection, half: L.half, blend: L.blend, around: L.around, picture: L.picture, back: backPhoto } },
       explode: lift,
     };

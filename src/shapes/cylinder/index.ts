@@ -8,9 +8,9 @@ import { bool, num, str, type ShapeDefinition } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
 import { cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { round } from '../box/layout';
-import { cableCuts, cableSlot, curvedText, lampCuts, lidText, ringText, type CableSlot } from '../common/base';
+import { annulus, cableCuts, cableSlot, curvedText, lampCuts, lidText, ringText, roundSlotMatrix, type CableSlot } from '../common/base';
 import { ensureFont } from '../../geometry/text';
-import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, type PowerLayout } from '../common/power';
+import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, roundTray, type PowerLayout } from '../common/power';
 import { cylinderGroups, withBase } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', ring: '#e9a23b', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -96,11 +96,6 @@ export function cylinderLayout(p: ParamValues): CylinderLayout {
   return { rOut, rIn, rBase, thick, gap, groove, width: 2 * Math.PI * (rIn + thick / 2), height, baseTop, panelBottom, panelTop, top, topR, cable, power, warnings };
 }
 
-/** Ring-shaped solid between two radii. */
-function annulus(k: Kernel, rIn: number, rOut: number, z0: number, z1: number): Manifold {
-  return cylinder(k, 0, 0, z0, z1 - z0, rOut).subtract(cylinder(k, 0, 0, z0 - 1, z1 - z0 + 2, rIn));
-}
-
 /** The groove the cylinder's edge sits in, between z0 and z1. */
 function groove(k: Kernel, L: CylinderLayout, z0: number, z1: number): Manifold {
   return annulus(k, L.rIn - L.gap, L.rOut + L.gap, z0, z1);
@@ -113,32 +108,12 @@ function buildBase(k: Kernel, p: ParamValues, L: CylinderLayout): Manifold {
   return base.subtract(k.Manifold.union(cuts));
 }
 
-/** Round battery tray under the base. */
-function buildTray(k: Kernel, p: ParamValues, L: CylinderLayout, P: PowerLayout): Manifold {
-  const circle = (r: number) => k.CrossSection.circle(r);
-  const grow = POWER_WALL + POWER_FIT;
-  return buildPowerTray(k, p, P, {
-    outer: circle(L.rBase + grow),
-    pocket: circle(L.rBase + POWER_FIT),
-    open: circle(L.rBase - POWER_LEDGE),
-    front: -(L.rBase + grow),
-    back: L.rBase + grow,
-    innerBack: L.rBase - POWER_LEDGE,
-    clip: true,
-  });
-}
-
 function buildRing(k: Kernel, p: ParamValues, L: CylinderLayout): Manifold {
   const z0 = L.panelTop - L.groove;
   if (!L.topR) return annulus(k, L.rIn - LIP, L.rBase, z0, L.top).subtract(groove(k, L, z0 - 1, L.panelTop + L.gap));
   // a lid with a round picture: a rebate it lies in, on a ledge round the opening
   const rebate = cylinder(k, 0, 0, L.top - (L.thick + 0.2), L.thick + 1.2, L.topR + L.gap);
   return annulus(k, L.topR - num(p, 'topLedge'), L.rBase, z0, L.top).subtract(groove(k, L, z0 - 1, L.panelTop + L.gap)).subtract(rebate);
-}
-
-function slotMatrix(z: number): number[] {
-  // panel x stays x, panel y (the axis) becomes up, the picture's middle faces -Y
-  return [1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, z, 1];
 }
 
 export const cylinderShape: ShapeDefinition = {
@@ -160,7 +135,7 @@ export const cylinderShape: ShapeDefinition = {
     if (withBase(p)) {
       let base = buildBase(k, p, L);
       const P = L.power;
-      let tray = P ? buildTray(k, p, L, P) : null;
+      let tray = P ? roundTray(k, p, L.rBase, P) : null;
       // text bent round the base's front, or round the battery tray's when there is one
       const tr = L.rBase + POWER_WALL + POWER_FIT;
       const t = P
@@ -191,7 +166,7 @@ export const cylinderShape: ShapeDefinition = {
     }
 
     const zc = (L.panelBottom + L.panelTop) / 2;
-    const slot: PanelSlot = { id: 'round', width: L.width, height: L.height, thickness: L.thick, matrix: slotMatrix(zc), wrap: { radius: L.rIn } };
+    const slot: PanelSlot = { id: 'round', width: L.width, height: L.height, thickness: L.thick, matrix: roundSlotMatrix(zc), wrap: { radius: L.rIn } };
     const tube = annulus(k, L.rIn, L.rOut, L.panelBottom, L.panelTop);
     parts.push({ id: 'panel-round', mesh: toMeshData(tube), color: COLORS.panel, explode: [0, 0, 60], printRotation: [0, 0, 0], preview: true, ghost: true });
     if (withBase(p)) {

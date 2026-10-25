@@ -1,5 +1,6 @@
-import type { ParamDef, ParamGroup, ParamValues } from '../../core/types';
+import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups } from '../box/params';
+import { fromBox, keys } from '../common/params';
 
 /** How the picture is lit; an LED strip frame comes later. */
 export const LIGHTING = ['box', 'stand', 'plain', 'frame'];
@@ -12,18 +13,6 @@ export const lightBox = (p: ParamValues) => p.lighting === 'box';
 export const lightStand = (p: ParamValues) => p.lighting === 'stand';
 const withLamp = (p: ParamValues) => lightBox(p) || lightStand(p);
 
-type When = (p: ParamValues) => boolean;
-
-/** The box's own definition of a setting, shown only for the given lighting. */
-function fromBox(key: string, when: When = lightBox, over: Partial<ParamDef> = {}): ParamDef {
-  const def = boxGroups.flatMap((g) => g.params).find((d) => d.key === key);
-  if (!def) throw new Error(`no box setting ${key}`);
-  const vis = def.visibleIf;
-  return { ...def, visibleIf: (p) => when(p) && (!vis || vis(p)), ...over } as ParamDef;
-}
-
-const keys = (when: When, ...k: string[]) => k.map((x) => fromBox(x, when));
-
 export const panelGroups: ParamGroup[] = [
   {
     id: 'panels',
@@ -32,7 +21,7 @@ export const panelGroups: ParamGroup[] = [
       { key: 'panelHeight', type: 'number', default: 150, min: 40, max: 300, step: 0.5, unit: 'mm' },
       { key: 'panelThickness', type: 'number', default: 3.2, min: 1, max: 8, step: 0.1, unit: 'mm' },
       fromBox('slotClearance', withLamp),
-      fromBox('slotEngage'),
+      fromBox('slotEngage', lightBox),
     ],
   },
   boxGroups.find((g) => g.id === 'litho')!,
@@ -59,9 +48,9 @@ export const panelGroups: ParamGroup[] = [
     id: 'base',
     params: [
       ...keys(withLamp, 'baseHeight', 'lampDiameter'),
-      fromBox('lampSeatDepth'),
+      fromBox('lampSeatDepth', lightBox),
       ...keys(withLamp, 'steelDisc', 'discDiameter', 'discDepth'),
-      fromBox('discKeepClear'),
+      fromBox('discKeepClear', lightBox),
       fromBox('baseGroove', withLamp),
     ],
   },
@@ -72,7 +61,7 @@ export const panelGroups: ParamGroup[] = [
   // the hood closes on the base with the box lid's closures; the hood has its own top plate
   {
     id: 'lid',
-    params: boxGroups.find((g) => g.id === 'lid')!.params.filter((d) => !['lidThickness', 'topLedge', 'lidGroove'].includes(d.key)).map((d) => fromBox(d.key)),
+    params: boxGroups.find((g) => g.id === 'lid')!.params.filter((d) => !['lidThickness', 'topLedge', 'lidGroove'].includes(d.key)).map((d) => fromBox(d.key, lightBox)),
   },
   { id: 'text', params: keys(withLamp, 'baseText', 'baseTextStyle', 'baseTextSize', 'textFont', 'textDepth', 'textSecondColor') },
   // battery tray under the light box, as under the box

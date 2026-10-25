@@ -9,7 +9,8 @@ import { toMeshData } from '../../geometry/kernel';
 import { outlinePoints } from '../../litho/mesh';
 import { boxGroups } from '../box/params';
 import { round } from '../box/layout';
-import { fromBox } from '../cylinder/params';
+import { roundSlotMatrix } from '../common/base';
+import { fromBox } from '../common/params';
 import { hangingLoop, loopAnchor, loopWidth, outlineFor, outlineSize, OUTLINES } from '../common/outlines';
 
 const COLORS = { litho: '#f4ead7', panel: '#fff4dc' };
@@ -32,9 +33,6 @@ export const ornamentGroups: ParamGroup[] = [
   boxGroups.find((g) => g.id === 'print')!,
 ];
 
-/** Standing upright, facing -Y: panel x stays x, panel y becomes up, the picture faces -Y. */
-const slotMatrix = (z: number) => [1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, z, 1];
-
 export const ornamentShape: ShapeDefinition = {
   id: 'ornament',
   groups: ornamentGroups,
@@ -48,7 +46,7 @@ export const ornamentShape: ShapeDefinition = {
     const o = outlineFor(str(p, 'outline'), num(p, 'ornamentSize'));
     const [w, h] = outlineSize(o);
     const T = num(p, 'panelThickness');
-    const matrix = slotMatrix(h / 2);
+    const matrix = roundSlotMatrix(h / 2);
     const slot: PanelSlot = { id: 'picture', width: w, height: h, thickness: T, matrix, outline: o, explode: [0, 0, 0] };
     const pts = outlinePoints(o);
     const parts: PartOutput[] = [];

@@ -1,6 +1,6 @@
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { fromBox, type When } from '../cylinder/params';
+import { fromBox, keys } from '../common/params';
 
 export const SHADES = ['cone', 'cylinder'];
 /** Hung from a ceiling socket, or standing on a base with a lamp in it. */
@@ -15,7 +15,6 @@ export const tableSocket = (p: ParamValues) => table(p) && p.tableLamp === 'sock
 /** A lamp socket is used: the pendant's, or the table base's. */
 const socket = (p: ParamValues) => pendant(p) || tableSocket(p);
 
-const keys = (when: When, ...k: string[]) => k.map((x) => fromBox(x, when));
 const litho = boxGroups.find((g) => g.id === 'litho')!;
 const power = (p: ParamValues) => tablePuck(p) && p.powerBase === true;
 

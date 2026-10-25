@@ -6,9 +6,9 @@ import { bool, num, str, type ShapeDefinition } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput, Vec3 } from '../../core/types';
 import { box, cylinder, prism, roundedRect, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
-import { cableCuts, fitText, frontText, lampCuts } from '../common/base';
+import { cableCuts, fitText, frontText, lampCuts, slotMatrix } from '../common/base';
 import { jointGeometry, type JointGeometry } from '../common/lid';
-import { buildPowerTray, powerUnderside } from '../common/power';
+import { powerUnderside, rectTray } from '../common/power';
 import { boxLayout, round, type BoxLayout } from './layout';
 import { boxGroups } from './params';
 
@@ -78,21 +78,6 @@ function buildLid(k: Kernel, p: ParamValues, L: BoxLayout, joint: JointGeometry)
   if (joint.lidAdds.length) lid = lid.add(k.Manifold.union(joint.lidAdds));
   if (joint.lidCuts.length) lid = lid.subtract(k.Manifold.union(joint.lidCuts));
   return lid;
-}
-
-/** Open tray for a battery or power bank under the body (common/power.ts). */
-function buildPowerBase(k: Kernel, p: ParamValues, L: BoxLayout): Manifold {
-  const P = L.power!;
-  const r = num(p, 'cornerRadius');
-  const rim = (P.outerX - L.outerX) / 2; // wall + fit around the body
-  return buildPowerTray(k, p, P, {
-    outer: roundedRect(k, P.outerX, P.outerY, r + rim),
-    pocket: roundedRect(k, L.outerX + 0.6, L.outerY + 0.6, r + 0.3),
-    open: roundedRect(k, P.outerX - 2 * P.wallT, P.outerY - 2 * P.wallT, Math.max(1, r - 2)),
-    front: -P.outerY / 2,
-    back: P.outerY / 2,
-    innerBack: P.outerY / 2 - P.wallT,
-  });
 }
 
 // ------------------------------------------------------------------ text
@@ -168,10 +153,6 @@ function applyText(m: Manifold, g: TextGeometry, target: Target): Manifold {
 
 // ------------------------------------------------------------------ slots + previews
 
-function slotMatrix(origin: Vec3, xAxis: Vec3, yAxis: Vec3, zAxis: Vec3): number[] {
-  return [...xAxis, 0, ...yAxis, 0, ...zAxis, 0, ...origin, 1];
-}
-
 function panelSlots(L: BoxLayout, top: boolean): PanelSlot[] {
   const zc = (L.panelBottom + L.panelTop) / 2;
   const slots: PanelSlot[] = [
@@ -228,7 +209,7 @@ export const boxShape: ShapeDefinition = {
         // solid lid like the original recommends: infill patterns would cast shadows
         slicer: { sparse_infill_density: '100%' } },
     ];
-    if (L.power) parts.push({ id: 'power', mesh: toMeshData(applyText(buildPowerBase(k, p, L), text, 'power')), color: COLORS.power, explode: [0, 0, -70], printRotation: [0, 0, 0] });
+    if (L.power) parts.push({ id: 'power', mesh: toMeshData(applyText(rectTray(k, p, L.outerX, L.outerY, L.power), text, 'power')), color: COLORS.power, explode: [0, 0, -70], printRotation: [0, 0, 0] });
     for (const v of text.volumes) {
       const host = parts.find((x) => x.id === v.target)!;
       parts.push({ id: v.id, object: v.target, extruder: 2, mesh: toMeshData(v.solid), color: COLORS.text, explode: host.explode, printRotation: host.printRotation });

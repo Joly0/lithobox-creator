@@ -6,10 +6,10 @@
 // Model space: millimetres, Z up, centred on x = y = 0, standing on z = 0. Side 1 faces -Y
 // (the front), the others follow anticlockwise seen from above. The cable leaves towards +Y.
 import { bool, num, str, type ShapeDefinition } from '../../core/shape';
-import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput, Vec3 } from '../../core/types';
+import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
 import { box, cylinder, prism, toMeshData, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
 import { round } from '../box/layout';
-import { cableCuts, cableSlot, frontText, lampCuts, lidText, type CableSlot } from '../common/base';
+import { cableCuts, cableSlot, frontText, lampCuts, lidText, slotMatrix, type CableSlot } from '../common/base';
 import { ensureFont } from '../../geometry/text';
 import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, type PowerLayout } from '../common/power';
 import { jointGeometry, jointLayout, type JointGeometry, type JointLayout, type LatchFace, type Socket } from '../common/lid';
@@ -268,10 +268,6 @@ function buildLid(k: Kernel, p: ParamValues, L: PolygonLayout, joint: JointGeome
   if (joint.lidAdds.length) lid = lid.add(k.Manifold.union(joint.lidAdds));
   if (joint.lidCuts.length) lid = lid.subtract(k.Manifold.union(joint.lidCuts));
   return lid;
-}
-
-function slotMatrix(origin: Vec3, xAxis: Vec3, yAxis: Vec3, zAxis: Vec3): number[] {
-  return [...xAxis, 0, ...yAxis, 0, ...zAxis, 0, ...origin, 1];
 }
 
 /** The picture on top: a polygon like the lamp's, centred in its bounding box (odd sides are taller one way). */

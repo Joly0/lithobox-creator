@@ -11,8 +11,8 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { box, cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
 import { round } from '../box/layout';
-import { cableCuts, cableSlot, curvedText, lampCuts, type CableSlot } from '../common/base';
-import { buildPowerTray, PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, type PowerLayout } from '../common/power';
+import { annulus, cableCuts, cableSlot, curvedText, lampCuts, roundSlotMatrix, type CableSlot } from '../common/base';
+import { PILLAR, POWER_FIT, POWER_LEDGE, POWER_WALL, powerLayout, powerTextZ, powerUnderside, roundTray, type PowerLayout } from '../common/power';
 import { cone, pendant, shadeGroups, table, tablePuck, tableSocket } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', spider: '#e9a23b', litho: '#f4ead7', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -127,11 +127,6 @@ function spiderRing(L: Pick<ShadeLayout, 'rBi' | 'rTi' | 'slope' | 'top' | 'bott
   return Math.min(backAt(L, L.top - LIP_T), L.rBi) - 0.3;
 }
 
-/** Ring between two radii, from z0 to z1 (the outside may lean: r1 at the top). */
-function annulus(k: Kernel, rIn: number, rOut0: number, z0: number, z1: number, rOut1 = rOut0): Manifold {
-  return cylinder(k, 0, 0, z0, z1 - z0, rOut0, rOut1).subtract(cylinder(k, 0, 0, z0 - 1, z1 - z0 + 2, rIn));
-}
-
 /** Hub round the socket hole and spokes out to radius `reach`, from z0 to z1. */
 function hubAndSpokes(k: Kernel, p: ParamValues, L: ShadeLayout, reach: number, z0: number, z1: number): Manifold {
   const h = L.hole / 2;
@@ -154,13 +149,8 @@ function separateSpider(k: Kernel, p: ParamValues, L: ShadeLayout): Manifold {
   return annulus(k, ro - RING_W, ro, z0, z1).add(hubAndSpokes(k, p, L, ro - RING_W + 1, z0, z1));
 }
 
-/** Model space to the shade's panel space (inverse of slotMatrix): for volumes printed with the shade. */
+/** Model space to the shade's panel space (inverse of roundSlotMatrix): for volumes printed with the shade. */
 const toPanel = (m: Manifold, zc: number) => m.translate([0, 0, -zc]).rotate([-90, 0, 0]);
-
-function slotMatrix(z: number): number[] {
-  // panel x stays x, panel y (the axis) becomes up, the picture's middle faces -Y
-  return [1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, z, 1];
-}
 
 /** The table base: a solid disc with a lamp seat, or a hollow drum with the socket in its top plate. */
 function buildBase(k: Kernel, p: ParamValues, L: ShadeLayout): Manifold {
@@ -183,21 +173,6 @@ function buildBase(k: Kernel, p: ParamValues, L: ShadeLayout): Manifold {
   return base.subtract(k.Manifold.union(cuts));
 }
 
-/** The battery tray round the base (a puck base only). */
-function buildTray(k: Kernel, p: ParamValues, L: ShadeLayout, P: PowerLayout): Manifold {
-  const circle = (r: number) => k.CrossSection.circle(r);
-  const grow = POWER_WALL + POWER_FIT;
-  return buildPowerTray(k, p, P, {
-    outer: circle(L.rBase + grow),
-    pocket: circle(L.rBase + POWER_FIT),
-    open: circle(L.rBase - POWER_LEDGE),
-    front: -(L.rBase + grow),
-    back: L.rBase + grow,
-    innerBack: L.rBase - POWER_LEDGE,
-    clip: true,
-  });
-}
-
 export const shadeShape: ShapeDefinition = {
   id: 'shade',
   groups: shadeGroups,
@@ -215,7 +190,7 @@ export const shadeShape: ShapeDefinition = {
     const warnings = [...L.warnings];
     const parts: PartOutput[] = [];
     const zc = (L.bottom + L.top) / 2;
-    const matrix = slotMatrix(zc);
+    const matrix = roundSlotMatrix(zc);
     // exploded: a hanging shade stays and the spider, socket and bulb lift out of its top (the
     // bulb clear of it); a standing shade lifts off its base
     const [bd, bl] = BULB[str(p, 'socket') === 'e14' ? 'e14' : 'e27'];
@@ -239,7 +214,7 @@ export const shadeShape: ShapeDefinition = {
     } else {
       let base = buildBase(k, p, L);
       const P = L.power;
-      let tray = P ? buildTray(k, p, L, P) : null;
+      let tray = P ? roundTray(k, p, L.rBase, P) : null;
       // with a tray the text goes on its front, else on the base
       const tr = P ? L.rBase + POWER_WALL + POWER_FIT : L.rBase;
       const arc = ((2 * Math.PI) / 3) * tr - 8;

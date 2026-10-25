@@ -1,6 +1,6 @@
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups, COLOUR_KEYS } from '../box/params';
-import { fromBox, type When } from '../cylinder/params';
+import { fromBox, keys } from '../common/params';
 
 /** Standing on its own cut rim (over an existing lamp fitting), or in a base with a lamp. */
 export const MOUNTS = ['standalone', 'base'];
@@ -10,7 +10,6 @@ export const onBase = (p: ParamValues) => p.mount === 'base';
 export const basePuck = (p: ParamValues) => onBase(p) && p.tableLamp === 'puck';
 export const baseSocket = (p: ParamValues) => onBase(p) && p.tableLamp === 'socket';
 
-const keys = (when: When, ...k: string[]) => k.map((x) => fromBox(x, when));
 const litho = boxGroups.find((g) => g.id === 'litho')!;
 const power = (p: ParamValues) => basePuck(p) && p.powerBase === true;
 
