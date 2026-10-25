@@ -66,11 +66,11 @@ describe('lithophane mesh', () => {
     expect(b.min[0]).toBeGreaterThanOrEqual(-78 - 1e-4);
     expect(b.max[0]).toBeLessThanOrEqual(78 + 1e-4);
     expect(b.min[1]).toBeCloseTo(-78, 5);
-    // inner fin faces lie within the 2 mm margin
+    // the fins touch the margin with one 0.4 mm line, and stay that narrow for 1 mm off the face
     for (let i = 0; i < fins.positions.length; i += 3) {
       const x = Math.abs(fins.positions[i]);
       const z = Math.abs(fins.positions[i + 2]);
-      if (z <= 1.6 + 1e-6) expect(x).toBeGreaterThanOrEqual(78 - 0.8 - 1e-4);
+      if (z < 1.6 + 1 - 1e-6) expect(x).toBeGreaterThanOrEqual(78 - 0.4 - 1e-4);
     }
     if (process.env.EXPORT_DIR) {
       const panel = panelMesh(spec, heightMap(spec, testPicture(200, 200)));

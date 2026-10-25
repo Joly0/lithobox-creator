@@ -8,6 +8,8 @@ import { box, cylinder, prism, type Kernel, type Manifold } from '../geometry/ke
 import type { PanelSpec } from './mesh';
 
 const FIN = 0.8; // wall thickness; within the 2 mm margin, so it never touches the picture
+/** Where the fin meets the panel it narrows to one line (width, depth off the face), so it breaks off cleanly. */
+const NECK = [0.4, 1];
 const PAD = 0.4; // floor pad thickness (two layers)
 const PAD_GAP = 1.4; // pads stay this far from the panel so they don't fuse to it
 const RIB = [0.8, 2]; // stiffening rib on each fin: thickness, width (pointing inwards)
@@ -79,7 +81,17 @@ export function supportFins(k: Kernel, spec: PanelSpec, size = 'normal'): Manifo
       const px0 = side > 0 ? W / 2 - padW : -W / 2, px1 = px0 + padW;
       parts.push(box(k, [px0, bottom, Math.min(pz0, pz1)], [px1, bottom + PAD, Math.max(pz0, pz1)]));
     }
-  return k.Manifold.union(parts);
+  // the neck: next to each face only the outermost line of the fin is left, the rest (and the
+  // bevel's start) is cut back
+  const neckW = Math.min(NECK[0], finW);
+  const cuts: Manifold[] = [];
+  for (const side of [-1, 1])
+    for (const face of [-1, 1]) {
+      const xa = side * (W / 2 - neckW), xb = side * (W / 2 - neckW - 10);
+      const za = (face * T) / 2, zb = za + face * NECK[1];
+      cuts.push(box(k, [Math.min(xa, xb), bottom - 1, Math.min(za, zb)], [Math.max(xa, xb), H / 2 + 1, Math.max(za, zb)]));
+    }
+  return k.Manifold.union(parts).subtract(k.Manifold.union(cuts));
 }
 
 /**
