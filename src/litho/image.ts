@@ -115,34 +115,29 @@ export function tone(l: number, e: PictureEdit): number {
   return Math.min(1, Math.max(0, v));
 }
 
-/** Box blur (separable) of a grid, radius in samples. */
-function blur(src: Float32Array, cols: number, rows: number, r: number): Float32Array {
-  const tmp = new Float32Array(src.length), out = new Float32Array(src.length);
-  for (let y = 0; y < rows; y++)
-    for (let x = 0; x < cols; x++) {
-      let s = 0, n = 0;
-      for (let k = -r; k <= r; k++) {
-        const xx = x + k;
-        if (xx >= 0 && xx < cols) {
-          s += src[y * cols + xx];
-          n++;
-        }
-      }
-      tmp[y * cols + x] = s / n;
-    }
-  for (let y = 0; y < rows; y++)
-    for (let x = 0; x < cols; x++) {
-      let s = 0, n = 0;
-      for (let k = -r; k <= r; k++) {
-        const yy = y + k;
-        if (yy >= 0 && yy < rows) {
-          s += tmp[yy * cols + x];
-          n++;
-        }
-      }
-      out[y * cols + x] = s / n;
-    }
+/**
+ * Box blur (separable) of a grid, radius in samples. A running sum along each line, so the cost
+ * does not grow with the radius; near an edge it averages only the samples that exist.
+ */
+export function boxBlur(src: Float32Array, cols: number, rows: number, r: number): Float32Array {
+  const tmp = new Float32Array(cols * rows), out = new Float32Array(cols * rows);
+  blurLines(src, tmp, cols, rows, 1, cols, r);
+  blurLines(tmp, out, rows, cols, cols, 1, r);
   return out;
+}
+
+/** Blur `lines` lines of `len` samples, `step` apart within a line and `lineStep` between lines. */
+function blurLines(src: Float32Array, dst: Float32Array, len: number, lines: number, step: number, lineStep: number, r: number): void {
+  for (let l = 0; l < lines; l++) {
+    const at = (i: number) => l * lineStep + i * step;
+    let s = 0;
+    for (let i = 0; i <= Math.min(r, len - 1); i++) s += src[at(i)];
+    for (let i = 0; i < len; i++) {
+      dst[at(i)] = s / (Math.min(len - 1, i + r) - Math.max(0, i - r) + 1);
+      if (i + r + 1 < len) s += src[at(i + r + 1)];
+      if (i - r >= 0) s -= src[at(i - r)];
+    }
+  }
 }
 
 /**
@@ -169,7 +164,7 @@ export function sampleLuminance(pl: Placement, cols: number, rows: number, mmPer
   if (pl.edit.sharpness > 0) {
     // unsharp mask over about 0.8 mm
     const r = Math.max(1, Math.round(0.8 / mmPerSample));
-    const soft = blur(data, cols, rows, r);
+    const soft = boxBlur(data, cols, rows, r);
     const sharp = new Float32Array(data.length);
     for (let i = 0; i < data.length; i++) sharp[i] = Math.min(1, Math.max(0, data[i] + pl.edit.sharpness * (data[i] - soft[i])));
     data = sharp;

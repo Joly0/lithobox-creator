@@ -1,5 +1,8 @@
 // 3MF <mesh> XML in chunks, for writers that stream into the ZIP.
-const f = (n: number) => (Math.round(n * 1e4) / 1e4).toString();
+/** A number for 3MF XML, to 0.0001. */
+export const f = (n: number) => (Math.round(n * 1e4) / 1e4).toString();
+/** Text for an XML attribute or element. */
+export const esc = (s: string) => s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]!);
 const BATCH = 20000;
 
 export function* meshXml(positions: Float32Array, indices: Uint32Array, enc: TextEncoder): Generator<Uint8Array> {

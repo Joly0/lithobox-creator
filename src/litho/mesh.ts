@@ -5,6 +5,7 @@
 // Panel space: x right, y up, z out of the box (towards the viewer), origin at the
 // panel centre. The back is at z = -thickness/2, the relief rises towards +z.
 import type { MeshData, Outline } from '../core/types';
+import { toLight } from './colour';
 
 export interface PanelSpec {
   /** Outer size including the margin (= the slot size). */
@@ -218,9 +219,6 @@ export function gridSize(spec: PanelSpec): { cols: number; rows: number } {
 /** How much light 1 mm of white PLA swallows (natural log); the lamp shader's green channel. */
 export const ABSORB_PER_MM = 1.55;
 
-/** A photo's sRGB brightness as light (0..1). */
-const toLight = (l: number) => (l <= 0.04045 ? l / 12.92 : ((l + 0.055) / 1.055) ** 2.4);
-
 /**
  * Thickness for a brightness l (0 black, 1 white) between t0 (white) and T (black). On the light
  * curve the light let through, which falls off exponentially with thickness, is the photo's
@@ -242,15 +240,16 @@ export function heightMap(spec: PanelSpec, lum: Luminance | null, back: Luminanc
   const round = !!spec.wrapRadius && !spec.wrapOpen;
   const mx = round ? 0 : m;
   const pw = Math.max(W - 2 * mx, 1e-6), ph = Math.max(H - 2 * m, 1e-6);
+  // a ball: radius halfway through the wall and the band's latitudes, the same for every point
+  const sph = spec.sphere;
+  const rm = (spec.wrapRadius ?? 0) + T / 2;
+  const lat: [number, number] = sph ? [(sph.band[0] + sph.sMid) / rm, (sph.band[1] + sph.sMid) / rm] : [0, 0];
   for (let j = 0; j < rows; j++) {
     const y = H / 2 - (j * H) / (rows - 1);
     for (let i = 0; i < cols; i++) {
       const x = -W / 2 + (i * W) / (cols - 1);
-      const sph = spec.sphere;
       if (sph) {
         // a ball: the picture where the projection puts it, plain thin elsewhere, a margin at the cut
-        const rm = spec.wrapRadius! + T / 2;
-        const lat: [number, number] = [(sph.band[0] + sph.sMid) / rm, (sph.band[1] + sph.sMid) / rm];
         // a second picture on the back half: the ball turned half round, so it reads from behind
         let lam = x / rm, pic = lum;
         if (sph.back && back && Math.abs(lam) > Math.PI / 2) (lam -= Math.sign(lam) * Math.PI), (pic = back);

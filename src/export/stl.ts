@@ -5,14 +5,24 @@ export function toStl(positions: Float32Array, indices: Uint32Array): Uint8Array
   const dv = new DataView(buf);
   dv.setUint32(80, n, true);
   let o = 84;
+  const put = (c: number) => {
+    dv.setFloat32(o, c, true);
+    o += 4;
+  };
+  // plain locals, no arrays per triangle: a big export has millions of them
   for (let t = 0; t < n; t++) {
-    const v = [indices[t * 3], indices[t * 3 + 1], indices[t * 3 + 2]].map((i) => [positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]]);
-    const u = [v[1][0] - v[0][0], v[1][1] - v[0][1], v[1][2] - v[0][2]];
-    const w = [v[2][0] - v[0][0], v[2][1] - v[0][1], v[2][2] - v[0][2]];
-    const nx = u[1] * w[2] - u[2] * w[1], ny = u[2] * w[0] - u[0] * w[2], nz = u[0] * w[1] - u[1] * w[0];
+    const a = indices[t * 3] * 3, b = indices[t * 3 + 1] * 3, c = indices[t * 3 + 2] * 3;
+    const ax = positions[a], ay = positions[a + 1], az = positions[a + 2];
+    const bx = positions[b], by = positions[b + 1], bz = positions[b + 2];
+    const cx = positions[c], cy = positions[c + 1], cz = positions[c + 2];
+    const ux = bx - ax, uy = by - ay, uz = bz - az;
+    const wx = cx - ax, wy = cy - ay, wz = cz - az;
+    const nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
     const len = Math.hypot(nx, ny, nz) || 1;
-    for (const c of [nx / len, ny / len, nz / len]) { dv.setFloat32(o, c, true); o += 4; }
-    for (const p of v) for (const c of p) { dv.setFloat32(o, c, true); o += 4; }
+    put(nx / len); put(ny / len); put(nz / len);
+    put(ax); put(ay); put(az);
+    put(bx); put(by); put(bz);
+    put(cx); put(cy); put(cz);
     o += 2;
   }
   return new Uint8Array(buf);

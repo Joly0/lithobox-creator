@@ -1,6 +1,6 @@
 // 3MF writer (core spec). Each part becomes a named object, laid out side by
 // side in print orientation; slicers can re-arrange or split onto plates.
-import { meshXml } from './meshxml';
+import { esc, f, meshXml } from './meshxml';
 import { bounds } from './transform';
 import { zip } from './zip';
 
@@ -10,8 +10,6 @@ export interface PrintPart {
   indices: Uint32Array;
 }
 
-const esc = (s: string) => s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]!);
-const f = (n: number) => (Math.round(n * 1e4) / 1e4).toString();
 
 export async function to3mf(parts: PrintPart[], title: string): Promise<Blob> {
   const items: string[] = [];

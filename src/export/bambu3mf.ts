@@ -2,7 +2,7 @@
 // object per printable object, each on its own named plate, with per-object
 // settings and optional extra volumes (e.g. raised text on another filament).
 // No printer profile is embedded, so the slicer keeps the user's own presets.
-import { meshXml } from './meshxml';
+import { esc, f, meshXml } from './meshxml';
 import { bounds } from './transform';
 import { zip } from './zip';
 
@@ -20,8 +20,6 @@ export interface PrintObject {
   settings?: Record<string, string>;
 }
 
-const esc = (s: string) => s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]!);
-const f = (n: number) => (Math.round(n * 1e4) / 1e4).toString();
 const uuid = (kind: number, n: number) => `${kind.toString(16).padStart(8, '0')}-${n.toString(16).padStart(4, '0')}-4000-8000-${n.toString(16).padStart(12, '0')}`;
 
 /** Bambu Studio lays plates out in a grid with a fifth of the bed size between them. */
