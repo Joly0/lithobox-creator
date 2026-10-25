@@ -404,6 +404,7 @@
   "slot.side7": "Lado 7",
   "slot.side8": "Lado 8",
   "ui.resetOne": "Volver al valor predeterminado ({value}{unit})",
+  "ui.resetOnePreset": "Volver al valor de partida ({value}{unit})",
   "ui.yes": "activado",
   "ui.no": "desactivado",
   "ui.empty": "vacío",

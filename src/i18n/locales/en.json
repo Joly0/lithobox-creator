@@ -404,6 +404,7 @@
   "slot.side7": "Side 7",
   "slot.side8": "Side 8",
   "ui.resetOne": "Back to the default ({value}{unit})",
+  "ui.resetOnePreset": "Back to the preset ({value}{unit})",
   "ui.yes": "on",
   "ui.no": "off",
   "ui.empty": "empty",

@@ -186,6 +186,7 @@ function setShape(id: string, params?: Partial<ParamValues>): void {
   panels.forEach((p) => p.setShape(shape, values));
   shapeSel.value = shape.id;
   $('presetRow').hidden = !shape.presets?.length;
+  loadPicked();
   renderPresets();
   reframe = true;
   rebuild();
@@ -210,12 +211,43 @@ function syncPreset(): void {
   presetSel.value = matchingPreset(shape, values)?.id ?? '';
 }
 
+// The preset picked last for this shape, remembered in this browser: each setting's reset goes
+// back to its value there, and shows only where the settings differ from it. The dropdown can't
+// tell, it shows "your own" as soon as one setting differs.
+let picked: string | null = null;
+
+function setPicked(id: string | null): void {
+  picked = id;
+  try {
+    if (id) localStorage.setItem(`preset.${shape.id}`, id);
+    else localStorage.removeItem(`preset.${shape.id}`);
+  } catch {
+    /* private mode */
+  }
+  const pr = shape.presets?.find((x) => x.id === picked);
+  const baseline = pr ? sanitize(shape, { ...defaultValues(shape), ...pr.values }) : null;
+  panels.forEach((p) => p.setBaseline(baseline));
+}
+
+/** After loading settings: the preset they match (a share link, say), else the one picked last. */
+function loadPicked(): void {
+  let id: string | null = null;
+  try {
+    id = localStorage.getItem(`preset.${shape.id}`);
+  } catch {
+    /* private mode */
+  }
+  setPicked(matchingPreset(shape, values)?.id ?? (shape.presets?.some((x) => x.id === id) ? id : null));
+}
+loadPicked();
+
 presetSel.addEventListener('change', () => {
   const pr = shape.presets?.find((x) => x.id === presetSel.value);
   if (!pr) return;
   values = sanitize(shape, { ...values, ...pr.values });
   reframe = true;
   panels.forEach((p) => p.setValues(values));
+  setPicked(pr.id);
   syncPreset();
   rebuild();
 });
@@ -225,6 +257,7 @@ $('reset').addEventListener('click', () => {
   values = defaultValues(shape);
   reframe = true;
   panels.forEach((p) => p.setValues(values));
+  setPicked(matchingPreset(shape, values)?.id ?? null);
   syncPreset();
   rebuild();
 });

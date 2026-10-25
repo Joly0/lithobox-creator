@@ -6,6 +6,8 @@ import { has, shapeKey, t } from '../i18n';
 export class ParamPanel {
   private rows = new Map<string, { def: ParamDef; row: HTMLElement; sync: () => void; reset: HTMLButtonElement }>();
   private showAdvanced = false;
+  /** The picked preset's values (over the defaults): what each setting's reset goes back to. */
+  private baseline: ParamValues | null = null;
   /** Text fields waiting to apply what was typed, by key. */
   private typing = new Map<string, number>();
 
@@ -24,7 +26,19 @@ export class ParamPanel {
   setShape(shape: ShapeDefinition, values: ParamValues): void {
     this.shape = shape;
     this.values = values;
+    this.baseline = null;
     this.render();
+  }
+
+  /** The values a preset sets (null: none picked, back to the defaults). */
+  setBaseline(baseline: ParamValues | null): void {
+    this.baseline = baseline;
+    this.updateVisibility();
+  }
+
+  /** What one setting's reset goes back to: the picked preset's value, else the default. */
+  private target(def: ParamDef): ParamValues[string] {
+    return this.baseline && def.key in this.baseline ? this.baseline[def.key] : def.default;
   }
 
   setValues(values: ParamValues): void {
@@ -181,16 +195,14 @@ export class ParamPanel {
       sync = () => (sel.value = this.values[def.key] as string);
       row.append(sel);
     }
-    // back to this one setting's default; only shown while it differs
+    // back to this one setting's value in the picked preset (or its default); only shown while it
+    // differs. Its title is set with the visibility, as the preset can change.
     const reset = document.createElement('button');
     reset.type = 'button';
     reset.className = 'preset-one';
     reset.textContent = '↺';
-    const title = t('ui.resetOne', { value: this.defaultText(def), unit: def.type === 'number' && def.unit ? ` ${def.unit}` : '' });
-    reset.title = title;
-    reset.setAttribute('aria-label', title);
     reset.addEventListener('click', () => {
-      this.values[def.key] = def.default;
+      this.values[def.key] = this.target(def);
       sync();
       this.onChange(def.key, this.values);
       this.updateVisibility();
@@ -201,19 +213,25 @@ export class ParamPanel {
     return row;
   }
 
-  /** A setting's default as the panel shows it (numbers stay numbers for the language's format). */
-  private defaultText(def: ParamDef): string | number {
-    if (def.type === 'number') return def.default;
-    if (def.type === 'bool') return t(def.default ? 'ui.yes' : 'ui.no');
-    if (def.type === 'select') return t(shapeKey(this.shape.id, `param.${def.key}.${def.default}`));
-    return def.default ? def.default : t('ui.empty');
+  /** A setting's reset value as the panel shows it (numbers stay numbers for the language's format). */
+  private targetText(def: ParamDef): string | number {
+    const v = this.target(def);
+    if (def.type === 'number') return v as number;
+    if (def.type === 'bool') return t(v ? 'ui.yes' : 'ui.no');
+    if (def.type === 'select') return t(shapeKey(this.shape.id, `param.${def.key}.${v}`));
+    return v ? (v as string) : t('ui.empty');
   }
 
   private updateVisibility(): void {
     this.rows.forEach(({ def, row, reset }) => {
       const vis = (!def.advanced || this.showAdvanced) && (!def.visibleIf || def.visibleIf(this.values));
       row.hidden = !vis;
-      reset.hidden = this.values[def.key] === def.default;
+      reset.hidden = this.values[def.key] === this.target(def);
+      if (!reset.hidden) {
+        const title = t(this.baseline ? 'ui.resetOnePreset' : 'ui.resetOne', { value: this.targetText(def), unit: def.type === 'number' && def.unit ? ` ${def.unit}` : '' });
+        reset.title = title;
+        reset.setAttribute('aria-label', title);
+      }
     });
     this.host.querySelectorAll<HTMLDetailsElement>('details.group').forEach((d) => {
       d.hidden = ![...d.querySelectorAll<HTMLElement>('.prow')].some((r) => !r.hidden);

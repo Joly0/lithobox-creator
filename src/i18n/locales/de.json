@@ -404,6 +404,7 @@
   "slot.side7": "Seite 7",
   "slot.side8": "Seite 8",
   "ui.resetOne": "Zurück zum Standard ({value}{unit})",
+  "ui.resetOnePreset": "Zurück zur Vorlage ({value}{unit})",
   "ui.yes": "an",
   "ui.no": "aus",
   "ui.empty": "leer",
