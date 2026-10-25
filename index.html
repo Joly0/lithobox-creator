@@ -11,8 +11,8 @@
     <header class="top">
       <div class="brand"><span class="logo"></span><span data-i18n="app.title"></span></div>
       <div class="top-actions">
-        <button type="button" id="saveProject" class="btn small" data-i18n="project.save"></button>
-        <label class="btn small" id="projectOpen"><span data-i18n="project.open"></span><input type="file" id="projectFile" accept=".lithobox" hidden /></label>
+        <button type="button" id="saveProject" class="btn small"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14" /></svg><span class="btn-text" data-i18n="project.save"></span></button>
+        <label class="btn small" id="projectOpen"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span class="btn-text" data-i18n="project.open"></span><input type="file" id="projectFile" accept=".lithobox" hidden /></label>
         <select id="lang" aria-label="Language"></select>
       </div>
     </header>
@@ -49,6 +49,8 @@
       </aside>
       <section class="stage">
         <div id="viewport"></div>
+        <!-- phone only: folds the preview to a thin strip -->
+        <button type="button" id="foldPreview" class="fold" aria-expanded="true"><span class="fold-label" data-i18n="ui.preview"></span><span class="chev" aria-hidden="true"></span></button>
         <div class="viewbar">
           <label><span data-i18n="ui.explode"></span> <input type="range" id="explode" min="0" max="1" step="0.01" value="0" /></label>
           <label><input type="checkbox" id="section" /> <span data-i18n="ui.section"></span></label>
@@ -59,16 +61,19 @@
           <button id="frame" class="link" data-i18n="ui.frame"></button>
           <span id="status" class="status"></span>
         </div>
-        <div class="outbar">
-          <ul id="info" class="info"></ul>
-          <div class="exports">
-            <div id="parts" class="parts"></div>
-            <button id="exportPlain" class="btn" data-i18n="export.plain3mf"></button>
-            <button id="exportStl" class="btn" data-i18n="export.stlZip"></button>
-            <button id="export3mf" class="btn primary" data-i18n="export.threemf"></button>
-          </div>
-        </div>
       </section>
+      <!-- below the preview on the desktop, the last row of the column on a phone -->
+      <div class="outbar">
+        <ul id="info" class="info"></ul>
+        <div class="exports">
+          <div id="parts" class="parts"></div>
+          <button id="exportPlain" class="btn" data-i18n="export.plain3mf"></button>
+          <button id="exportStl" class="btn" data-i18n="export.stlZip"></button>
+          <button id="export3mf" class="btn primary"><span class="long" data-i18n="export.threemf"></span><span class="short" data-i18n="export.threemfShort"></span></button>
+          <!-- phone only: opens the other downloads, the info and the parts -->
+          <button type="button" id="moreExports" class="btn more" aria-expanded="false"><span data-i18n="export.more"></span><span id="moreBadge" class="badge" hidden></span></button>
+        </div>
+      </div>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

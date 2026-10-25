@@ -36,7 +36,8 @@ button, input, select { font: inherit; color: inherit; }
 .logo { width: 22px; height: 22px; border-radius: 5px; background: var(--accent); box-shadow: inset 0 0 0 5px var(--accent), inset 0 0 0 11px #fff3d6; }
 #lang { width: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
 
-.layout { flex: 1; display: grid; grid-template-columns: 340px 1fr; min-height: 0; }
+.layout { flex: 1; display: grid; grid-template-columns: 340px 1fr; grid-template-rows: 1fr auto; min-height: 0; }
+.layout > .side { grid-row: 1 / 3; }
 .side { background: var(--bg); border-right: 1px solid var(--line); overflow-y: auto; padding: 8px 14px 24px; }
 .pic-list { display: grid; gap: 10px; margin-top: 12px; }
 .pic-library { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--bg); }
@@ -120,7 +121,7 @@ input[type='checkbox'] { accent-color: var(--accent); }
 .ptext { width: 100%; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); resize: vertical; font: inherit; }
 select { width: 100%; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
 
-.stage { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; min-height: 0; background: var(--stage); }
+.stage { grid-column: 2; grid-row: 1; display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; background: var(--stage); }
 .stage #viewport { grid-row: 1 / 3; grid-column: 1; position: relative; min-height: 320px; }
 .stage #viewport canvas { position: absolute; inset: 0; display: block; }
 .no-webgl { position: absolute; inset: 0; display: grid; place-content: center; gap: 8px; padding: 24px; text-align: center; color: var(--muted); max-width: 520px; margin: auto; }
@@ -141,7 +142,7 @@ body.no-3d .viewbar label, body.no-3d .viewbar button { display: none; }
 body.busy .status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 0.8s infinite alternate; }
 @keyframes pulse { to { opacity: 0.2; } }
 
-.outbar { grid-row: 3; display: flex; flex-wrap: wrap; gap: 10px 20px; justify-content: space-between; align-items: flex-end; padding: 10px 14px; background: var(--panel); border-top: 1px solid var(--line); }
+.outbar { grid-column: 2; grid-row: 2; display: flex; flex-wrap: wrap; gap: 10px 20px; justify-content: space-between; align-items: flex-end; padding: 10px 14px; background: var(--panel); border-top: 1px solid var(--line); }
 .info { margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
 .info li.warn { color: var(--warn); font-weight: 550; }
 .exports { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
@@ -152,24 +153,55 @@ body.busy .status::before { content: ''; width: 8px; height: 8px; border-radius:
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .link { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; }
 
+/* phone-only controls: hidden on the desktop layout */
+.ico, .fold, .btn.more, #export3mf .short { display: none; }
+
 @media (max-width: 760px) {
-  .top { flex-wrap: wrap; gap: 8px; }
-  /* Phone: the page scrolls as a whole; the model stays visible at the top and
-     the download bar sticks to the bottom of the screen. */
-  html, body { height: auto; }
-  body { display: block; }
-  .top { position: sticky; top: 0; z-index: 5; }
+  /* Phone: one column exactly as high as the visible screen (dvh: with the browser's toolbar
+     showing), so the page itself never scrolls and nothing is fixed: mobile browsers place
+     fixed bars wrongly while their toolbar slides in and out. A one-row header, the model,
+     the settings (the only part that scrolls) and a one-row download bar. The column ends
+     above the system's navigation buttons, so the bar needs no safe-area padding (Firefox
+     reports 49 px there anyway, which showed as an empty strip under the button). */
+  body { height: 100dvh; }
+  .top { flex: none; height: 48px; padding: 0 12px; }
+  .brand { font-size: 15px; white-space: nowrap; overflow: hidden; min-width: 0; }
+  .top-actions { gap: 6px; flex-shrink: 0; }
+  .top-actions .btn { display: inline-grid; place-items: center; width: 34px; height: 32px; padding: 0; }
+  .top-actions .btn-text { display: none; }
+  .ico { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #lang { height: 32px; }
   .layout { display: flex; flex-direction: column; }
-  .stage { order: 1; display: block; position: sticky; top: 45px; z-index: 3; border-bottom: 1px solid var(--line); }
-  .stage #viewport { height: 40vh; min-height: 240px; }
-  .side { order: 2; }
+  .layout > .side { flex: 1; min-height: 0; overflow-y: auto; }
+  .stage { order: 1; flex: none; display: block; position: relative; border-bottom: 1px solid var(--line); }
+  .stage #viewport { height: 30dvh; min-height: 200px; }
   .viewbar { position: absolute; top: 0; left: 0; right: 0; padding: 8px; gap: 6px; }
   .viewbar input[type='range'] { width: 80px; }
   .status { display: none; }
-  .outbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; flex-direction: column; align-items: stretch; gap: 8px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 12px rgb(0 0 0 / 0.08); }
-  .info { max-height: 4.5em; overflow-y: auto; }
-  .exports { justify-content: stretch; }
-  .exports .btn { flex: 1; }
+  /* fold button: bottom right over the model; folded, a thin strip in its place */
+  .fold { display: inline-flex; align-items: center; gap: 6px; position: absolute; right: 8px; bottom: 8px; z-index: 1; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; background: color-mix(in srgb, var(--panel) 85%, transparent); color: var(--muted); font-size: 12.5px; cursor: pointer; }
+  .fold-label { display: none; }
+  .chev::after { content: '▴'; }
+  body.preview-folded .stage #viewport, body.preview-folded .viewbar { display: none; }
+  body.preview-folded .fold { position: static; width: 100%; height: 36px; justify-content: space-between; border: 0; border-radius: 0; background: var(--stage); padding: 0 14px; }
+  body.preview-folded .fold-label { display: inline; }
+  body.preview-folded .chev::after { content: '▾'; }
+  .side { order: 2; border-right: 0; padding-top: 0; }
+  /* the step tabs stay pinned from the start: the gap above them is part of the pinned row,
+     so they don't first slide up by the side's top padding */
+  .steps { top: 0; padding-top: 10px; }
+  /* bottom bar: the main download and "More"; open, it also shows the rest */
+  .outbar { order: 3; flex: none; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 8px; padding: 8px 12px; box-shadow: 0 -4px 12px rgb(0 0 0 / 0.08); }
+  .outbar:not(.open) .info, .outbar:not(.open) .parts, .outbar:not(.open) #exportPlain, .outbar:not(.open) #exportStl { display: none; }
+  .outbar.open { max-height: 70dvh; overflow-y: auto; }
+  .exports { justify-content: stretch; flex-wrap: wrap; }
   .parts { width: 100%; }
-  .side { border-right: 0; border-top: 1px solid var(--line); padding-bottom: 190px; }
+  #exportPlain, #exportStl { flex: 1 1 40%; }
+  #export3mf { flex: 1 1 55%; white-space: nowrap; }
+  #export3mf .long { display: none; }
+  #export3mf .short { display: inline; }
+  .btn.more { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+  .btn.more[aria-expanded='true'] { border-color: var(--accent); }
+  .badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--warn); color: #fff; font-size: 11px; }
+  .badge[hidden] { display: none; }
 }

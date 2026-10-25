@@ -380,6 +380,10 @@ function renderInfo(r: BuildResult): void {
     li.textContent = t(w.key, w.vars);
     list.append(li);
   }
+  // on a phone the warnings sit behind "More": count them on its badge
+  const badge = $('moreBadge');
+  badge.textContent = String(r.warnings.length);
+  badge.hidden = !r.warnings.length;
   for (const i of r.info) {
     const li = document.createElement('li');
     li.textContent = t(i.key, i.vars);
@@ -457,6 +461,35 @@ const downloadStl = wireExports(
   { bambu: $('export3mf'), plain: $('exportPlain'), stl: $('exportStl') },
 );
 
+// ------------------------------------------------------------ phone layout
+// "More" opens the other downloads, the info and the parts above the bottom bar.
+$('moreExports').addEventListener('click', () => {
+  const open = $('moreExports').getAttribute('aria-expanded') !== 'true';
+  $('moreExports').setAttribute('aria-expanded', String(open));
+  document.querySelector('.outbar')!.classList.toggle('open', open);
+});
+
+// the preview folds to a thin strip to leave the screen to the settings; remembered here
+function foldPreview(folded: boolean): void {
+  document.body.classList.toggle('preview-folded', folded);
+  $('foldPreview').setAttribute('aria-expanded', String(!folded));
+  $('foldPreview').title = t(folded ? 'ui.previewShow' : 'ui.previewHide');
+}
+$('foldPreview').addEventListener('click', () => {
+  const folded = !document.body.classList.contains('preview-folded');
+  foldPreview(folded);
+  try {
+    localStorage.setItem('previewFolded', folded ? '1' : '');
+  } catch {
+    /* private mode */
+  }
+});
+try {
+  foldPreview(localStorage.getItem('previewFolded') === '1');
+} catch {
+  foldPreview(false);
+}
+
 // ------------------------------------------------------------ project file
 // One .lithobox file with the settings and the placed photos: a backup, or a design to send.
 $('saveProject').addEventListener('click', async () => {
@@ -521,6 +554,10 @@ function translateStatic(): void {
   langSel.value = document.documentElement.lang;
   $('saveProject').title = t('project.saveHint');
   $('projectOpen').title = t('project.openHint');
+  // on a phone these two show only their icon
+  $('saveProject').setAttribute('aria-label', t('project.save'));
+  $('projectFile').setAttribute('aria-label', t('project.open'));
+  $('foldPreview').title = t(document.body.classList.contains('preview-folded') ? 'ui.previewShow' : 'ui.previewHide');
   panels.forEach((p) => p.render());
   renderShapes();
   renderPresets();
