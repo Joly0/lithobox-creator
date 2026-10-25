@@ -14,6 +14,7 @@
   "ui.preview": "Aperçu 3D",
   "ui.previewHide": "Masquer l'aperçu",
   "ui.previewShow": "Afficher l'aperçu",
+  "ui.splitter": "Faites glisser pour redimensionner l'aperçu",
   "export.stlZip": "STL (zip)",
   "export.stlOne": "Télécharger cette pièce en STL",
   "info.outer": "Dimensions extérieures : {x} × {y} × {z} mm",

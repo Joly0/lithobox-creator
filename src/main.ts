@@ -469,26 +469,101 @@ $('moreExports').addEventListener('click', () => {
   document.querySelector('.outbar')!.classList.toggle('open', open);
 });
 
-// the preview folds to a thin strip to leave the screen to the settings; remembered here
+// The handle between the preview and the settings shares the screen between them. The
+// preview's height is kept as a share of the room both have, so it still fits after the
+// phone turns. Dragged near the top the preview folds to a thin strip (a tap opens it again),
+// near the bottom the settings close. Remembered in this browser.
+const phone = matchMedia('(max-width: 760px)');
+const splitter = $('splitter');
+let share: number | null = null; // null: the stylesheet's default height
+
+/** Height the preview and the settings share: the column minus the bar, the handle and the stage's border. */
+function room(): number {
+  const layout = document.querySelector('.layout')!.getBoundingClientRect().height;
+  return layout - document.querySelector<HTMLElement>('.outbar')!.offsetHeight - splitter.offsetHeight - 1;
+}
+
+function applyShare(): void {
+  const closed = phone.matches && share !== null && share >= 1;
+  document.body.classList.toggle('settings-closed', closed);
+  $('viewport').style.height = phone.matches && share !== null ? `${Math.round(Math.min(1, share) * room())}px` : '';
+}
+
 function foldPreview(folded: boolean): void {
   document.body.classList.toggle('preview-folded', folded);
   $('foldPreview').setAttribute('aria-expanded', String(!folded));
   $('foldPreview').title = t(folded ? 'ui.previewShow' : 'ui.previewHide');
 }
-$('foldPreview').addEventListener('click', () => {
-  const folded = !document.body.classList.contains('preview-folded');
-  foldPreview(folded);
+
+function saveSplit(): void {
   try {
-    localStorage.setItem('previewFolded', folded ? '1' : '');
+    localStorage.setItem('previewFolded', document.body.classList.contains('preview-folded') ? '1' : '');
+    localStorage.setItem('previewShare', share === null ? '' : String(share));
   } catch {
     /* private mode */
   }
+}
+
+/** Ends a drag or a key press at height h: snaps to folded or to closed settings near the ends. */
+function settle(h: number): void {
+  const r = room();
+  if (h < 80) {
+    share = null;
+    foldPreview(true);
+  } else share = r - h < 80 ? 1 : h / r;
+  applyShare();
+  saveSplit();
+}
+
+$('foldPreview').addEventListener('click', () => {
+  share = null;
+  foldPreview(false);
+  applyShare();
+  saveSplit();
 });
+
+splitter.addEventListener('pointerdown', (e) => {
+  const folded = document.body.classList.contains('preview-folded');
+  const startY = e.clientY;
+  const startH = folded ? 0 : $('viewport').getBoundingClientRect().height;
+  if (folded) foldPreview(false);
+  document.body.classList.remove('settings-closed');
+  splitter.setPointerCapture(e.pointerId);
+  let h = startH;
+  const move = (m: PointerEvent) => {
+    h = Math.max(0, Math.min(room(), startH + m.clientY - startY));
+    $('viewport').style.height = `${Math.round(h)}px`;
+  };
+  const up = () => {
+    splitter.removeEventListener('pointermove', move);
+    splitter.removeEventListener('pointerup', up);
+    splitter.removeEventListener('pointercancel', up);
+    settle(h);
+  };
+  splitter.addEventListener('pointermove', move);
+  splitter.addEventListener('pointerup', up);
+  splitter.addEventListener('pointercancel', up);
+});
+
+splitter.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+  e.preventDefault();
+  const folded = document.body.classList.contains('preview-folded');
+  if (folded) foldPreview(false);
+  const h = folded ? 0 : $('viewport').getBoundingClientRect().height;
+  settle(h + (e.key === 'ArrowDown' ? 1 : -1) * room() * 0.1);
+});
+
+addEventListener('resize', applyShare);
+phone.addEventListener('change', applyShare);
 try {
   foldPreview(localStorage.getItem('previewFolded') === '1');
+  const s = parseFloat(localStorage.getItem('previewShare') ?? '');
+  share = Number.isFinite(s) ? s : null;
 } catch {
   foldPreview(false);
 }
+applyShare();
 
 // ------------------------------------------------------------ project file
 // One .lithobox file with the settings and the placed photos: a backup, or a design to send.
@@ -558,6 +633,8 @@ function translateStatic(): void {
   $('saveProject').setAttribute('aria-label', t('project.save'));
   $('projectFile').setAttribute('aria-label', t('project.open'));
   $('foldPreview').title = t(document.body.classList.contains('preview-folded') ? 'ui.previewShow' : 'ui.previewHide');
+  splitter.setAttribute('aria-label', t('ui.splitter'));
+  splitter.title = t('ui.splitter');
   panels.forEach((p) => p.render());
   renderShapes();
   renderPresets();

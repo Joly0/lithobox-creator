@@ -485,5 +485,8 @@ export class Viewer implements ModelViewer {
     this.renderer.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    // resizing clears the canvas, and the resize comes after this frame's render: draw now, or
+    // every step of a drag shows an empty frame (flicker)
+    this.renderer.render(this.scene, this.camera);
   }
 }
