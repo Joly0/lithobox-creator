@@ -1,3 +1,4 @@
+import { formatParam } from '../../core/format';
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { boxGroups } from '../box/params';
 import { fromBox, keys } from '../common/params';
@@ -17,6 +18,7 @@ export const panelGroups: ParamGroup[] = [
   {
     id: 'panels',
     params: [
+      formatParam,
       { key: 'panelWidth', type: 'number', default: 150, min: 40, max: 300, step: 0.5, unit: 'mm' },
       { key: 'panelHeight', type: 'number', default: 150, min: 40, max: 300, step: 0.5, unit: 'mm' },
       { key: 'panelThickness', type: 'number', default: 3.2, min: 1, max: 8, step: 0.1, unit: 'mm' },

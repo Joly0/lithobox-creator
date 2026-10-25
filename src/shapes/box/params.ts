@@ -1,3 +1,4 @@
+import { formatParam } from '../../core/format';
 import type { ParamGroup, ParamValues } from '../../core/types';
 import { FONT_IDS } from '../../geometry/text';
 
@@ -33,6 +34,7 @@ export const boxGroups: ParamGroup[] = [
   {
     id: 'panels',
     params: [
+      formatParam,
       { key: 'panelWidth', type: 'number', default: 156, min: 40, max: 300, step: 0.5, unit: 'mm' },
       { key: 'panelHeight', type: 'number', default: 156, min: 40, max: 300, step: 0.5, unit: 'mm' },
       { key: 'rectangular', type: 'bool', default: false },

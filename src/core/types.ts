@@ -37,6 +37,8 @@ export interface SelectParam extends ParamBase {
   type: 'select';
   default: string;
   options: string[];
+  /** A picture format: keeps these two number settings in its proportions (see core/format.ts). */
+  ratio?: { width: string; height: string };
 }
 
 export interface TextParam extends ParamBase {

@@ -19,7 +19,8 @@ export const heartGroups: ParamGroup[] = panelGroups.map((g) => {
     return {
       ...g,
       params: [
-        ...g.params.map((d) => (d.key === 'panelWidth' ? { ...d, default: 120 } : d.key === 'panelHeight' ? { ...d, default: 110 } : d) as ParamDef),
+        // a heart-shaped picture has no photo format
+        ...g.params.filter((d) => d.key !== 'picFormat').map((d) => (d.key === 'panelWidth' ? { ...d, default: 120 } : d.key === 'panelHeight' ? { ...d, default: 110 } : d) as ParamDef),
         { key: 'heartFlat', type: 'number', default: 25, min: 0, max: 80, step: 1, unit: 'mm' },
       ],
     };

@@ -125,6 +125,13 @@ input[type='range'] { accent-color: var(--accent); width: 100%; }
 input[type='checkbox'] { accent-color: var(--accent); }
 .ptext { width: 100%; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); resize: vertical; font: inherit; }
 select { width: 100%; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+/* picture format: the dropdown, a link button beside it and the visible picture's size under it */
+.pformat { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; }
+.btn.link-size { display: inline-grid; place-items: center; width: 32px; height: 28px; padding: 0; }
+.btn.link-size svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.btn.link-size[aria-pressed='true'] { color: var(--accent); border-color: var(--accent); }
+.btn.link-size[aria-pressed='true'] .cut { display: none; }
+.pformat-size { margin: 4px 0 0; }
 
 .stage { grid-column: 2; grid-row: 1; display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; background: var(--stage); }
 .stage #viewport { grid-row: 1 / 3; grid-column: 1; position: relative; min-height: 320px; }

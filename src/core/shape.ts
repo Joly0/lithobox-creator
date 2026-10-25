@@ -2,6 +2,7 @@
 // shape means writing one module that implements ShapeDefinition and
 // registering it in src/shapes/index.ts. UI, viewer and export are generic.
 import type { Kernel } from '../geometry/kernel';
+import { settleFormats } from './format';
 import type { BuildResult, Message, ParamDef, ParamGroup, ParamValues } from './types';
 
 export interface ShapeDefinition {
@@ -51,6 +52,7 @@ export function sanitize(shape: ShapeDefinition, input: Partial<ParamValues>): P
     else if (p.type === 'text' && typeof v === 'string') out[p.key] = (p.multiline ? v : v.replace(/\n/g, ' ')).slice(0, p.maxLength);
     else if (p.type === 'color' && typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)) out[p.key] = v.toLowerCase();
   }
+  settleFormats(out, allParams(shape));
   return out;
 }
 

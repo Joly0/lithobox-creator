@@ -1,5 +1,6 @@
 import './style.css';
-import { defaultValues, matchingPreset, sanitize } from './core/shape';
+import { linkFormat } from './core/format';
+import { allParams, defaultValues, matchingPreset, sanitize } from './core/shape';
 import type { BuildResult, ParamValues } from './core/types';
 import { loadProfile, profileFromFile, saveProfile, type StoredProfile } from './export/profile';
 import { PROJECT_EXT, ProjectError, readProject, writeProject } from './export/project';
@@ -38,6 +39,8 @@ let shape = getShape(initial.shape);
 const hasLink = new URLSearchParams(location.hash.slice(1)).has('p');
 const storedValues = (id: string) => (loadSettings(id) as Partial<ParamValues> | null) ?? {};
 let values = sanitize(shape, hasLink ? initial.params : storedValues(shape.id));
+/** The values as last built: a 'custom' picture format keeps their proportions. */
+let before: ParamValues = { ...values };
 let last: BuildResult | null = null;
 /** Re-centre the camera after the next build (set when the size jumps). */
 let reframe = false;
@@ -124,6 +127,7 @@ let lastRes = PREVIEW_RES;
 const REFINE_DELAY = 500;
 
 function rebuild(): void {
+  before = { ...values };
   clearTimeout(timer);
   clearTimeout(refineTimer);
   // coarse while editing, so sliders stay quick; the address bar is updated in the same
@@ -143,8 +147,10 @@ function refine(): void {
 }
 
 // ------------------------------------------------------------ settings panel
-const onParam = (_k: string, v: ParamValues) => {
+const onParam = (k: string, v: ParamValues) => {
   values = v;
+  // a picture format keeps width and height in proportion
+  if (linkFormat(values, allParams(shape), k, before)) panels.forEach((p) => p.setValues(values));
   syncPreset();
   rebuild();
 };

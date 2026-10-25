@@ -1,7 +1,8 @@
 // Settings panel generated from a shape's parameter schema.
+import { pictureSize } from '../core/format';
 import type { ShapeDefinition } from '../core/shape';
 import type { NumberParam, ParamDef, ParamGroup, ParamValues } from '../core/types';
-import { has, shapeKey, t } from '../i18n';
+import { fmt, has, shapeKey, t } from '../i18n';
 
 export class ParamPanel {
   private rows = new Map<string, { def: ParamDef; row: HTMLElement; sync: () => void; reset: HTMLButtonElement }>();
@@ -211,6 +212,37 @@ export class ParamPanel {
       });
       sync = () => (sel.value = this.values[def.key] as string);
       row.append(sel);
+      if (def.ratio) {
+        // a picture format: a link button beside it (off: free sizes; on again: the current
+        // proportions) and the visible picture's size under it
+        const link = def.ratio;
+        const wrap = document.createElement('div');
+        wrap.className = 'pformat';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn link-size';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /><path class="cut" d="M4 4l16 16" /></svg>';
+        btn.addEventListener('click', () => {
+          this.values[def.key] = this.values[def.key] === 'free' ? 'custom' : 'free';
+          sync();
+          this.onChange(def.key, this.values);
+          this.updateVisibility();
+        });
+        sel.replaceWith(wrap);
+        wrap.append(sel, btn);
+        const size = document.createElement('p');
+        size.className = 'hint pformat-size';
+        row.append(size);
+        sync = () => {
+          sel.value = this.values[def.key] as string;
+          const linked = this.values[def.key] !== 'free';
+          btn.setAttribute('aria-pressed', String(linked));
+          btn.title = t(linked ? 'ui.formatUnlink' : 'ui.formatLink');
+          btn.setAttribute('aria-label', btn.title);
+          const [w, h] = pictureSize(this.values, link);
+          size.textContent = t('ui.formatPicture', { w: fmt(Math.round(w * 10) / 10), h: fmt(Math.round(h * 10) / 10) });
+        };
+      }
     }
     // back to this one setting's value in the picked preset (or its default); only shown while it
     // differs. Its title is set with the visibility, as the preset can change.
@@ -242,6 +274,8 @@ export class ParamPanel {
   private updateVisibility(): void {
     this.rows.forEach(({ def, row, reset }) => {
       const vis = (!def.advanced || this.showAdvanced) && (!def.visibleIf || def.visibleIf(this.values));
+      // a format row shows the picture size, which other rows change
+      if (def.type === 'select' && def.ratio) this.rows.get(def.key)!.sync();
       row.hidden = !vis;
       reset.hidden = this.values[def.key] === this.target(def);
       if (!reset.hidden) {

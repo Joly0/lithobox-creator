@@ -1,3 +1,4 @@
+import { formatParam } from '../../core/format';
 import type { ParamGroup } from '../../core/types';
 import { boxGroups } from '../box/params';
 import { always, fromBox } from '../common/params';
@@ -12,6 +13,7 @@ export const polygonGroups: ParamGroup[] = [
     id: 'panels',
     params: [
       { key: 'sides', type: 'select', default: '6', options: SIDES },
+      formatParam,
       { key: 'panelWidth', type: 'number', default: 80, min: 30, max: 250, step: 0.5, unit: 'mm' },
       { key: 'panelHeight', type: 'number', default: 100, min: 30, max: 300, step: 0.5, unit: 'mm' },
       ...box('panelThickness', 'slotClearance', 'slotEngage'),
