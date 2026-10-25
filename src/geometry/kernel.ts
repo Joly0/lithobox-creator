@@ -18,19 +18,31 @@ let tracked: { delete(): void }[] | null = null;
  * Wrap every method of manifold's classes so results created while a scope is
  * open are remembered and freed when it closes. WASM memory is not garbage
  * collected, and a slider drag would otherwise leak every intermediate solid.
+ * Returns a stand-in for the class that also tracks objects made with `new`.
  */
-function instrument(cls: any): void {
+function instrument<T extends object>(cls: T): T {
+  const track = (r: any) => {
+    if (tracked && r && typeof r === 'object' && typeof r.delete === 'function') tracked.push(r);
+    return r;
+  };
   const wrap = (owner: any, name: string) => {
     const fn = owner[name];
     if (typeof fn !== 'function' || name === 'constructor' || name === 'delete') return;
     owner[name] = function (this: unknown, ...args: unknown[]) {
-      const r = fn.apply(this, args);
-      if (tracked && r && typeof r === 'object' && typeof r.delete === 'function') tracked.push(r);
-      return r;
+      return track(fn.apply(this, args));
     };
   };
-  for (const name of Object.getOwnPropertyNames(cls.prototype)) wrap(cls.prototype, name);
+  // manifold-3d puts the instance methods on the prototype of the embind
+  // objects it returns, which is not cls.prototype, so find it from a sample.
+  const c = cls as any;
+  const sample = c.cube?.([1, 1, 1]) ?? c.square(1);
+  const proto = Object.getPrototypeOf(sample);
+  sample.delete();
+  for (const name of Object.getOwnPropertyNames(proto)) wrap(proto, name);
   for (const name of Object.getOwnPropertyNames(cls)) wrap(cls, name);
+  return new Proxy(cls, {
+    construct: (target, args, newTarget) => track(Reflect.construct(target as any, args, newTarget)),
+  });
 }
 
 let kernelPromise: Promise<Kernel> | null = null;
@@ -39,11 +51,11 @@ export function loadKernel(locateWasm?: () => string): Promise<Kernel> {
   kernelPromise ??= (async () => {
     const wasm = await Module(locateWasm ? { locateFile: locateWasm } : undefined);
     wasm.setup();
-    instrument(wasm.Manifold);
-    instrument(wasm.CrossSection);
+    const Manifold = instrument(wasm.Manifold);
+    const CrossSection = instrument(wasm.CrossSection);
     wasm.setMinCircularAngle(3);
     wasm.setMinCircularEdgeLength(0.5);
-    return { wasm, Manifold: wasm.Manifold, CrossSection: wasm.CrossSection };
+    return { wasm, Manifold, CrossSection };
   })();
   return kernelPromise;
 }
