@@ -401,7 +401,10 @@ export function wrapMesh(spec: PanelSpec, hm: HeightMap): MeshData {
     if (!hole || j < 0 || j >= m - 1) return false;
     const cx = -W / 2 + ((i + 0.5) * W) / (hm.cols - 1), cy = H / 2 - ((j + 0.5) * H) / (m - 1);
     const dx = Math.abs(cx - hole.x) % W;
-    return Math.hypot(Math.min(dx, W - dx), cy - hole.y) < hole.r;
+    // x is measured round the equator; at this height the way round is shorter, by the cosine
+    // of the latitude, or the hole comes out taller than wide low on a ball
+    const across = sph ? Math.cos((cy + sph.sMid) / rMid) : 1;
+    return Math.hypot(Math.min(dx, W - dx) * across, cy - hole.y) < hole.r;
   };
   const col = (i: number) => (i + q) % q;
   for (let j = 0; j < m - 1; j++)

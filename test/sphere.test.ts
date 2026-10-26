@@ -90,3 +90,33 @@ describe('ball lamp', { timeout: 60000 }, () => {
       });
     });
 });
+
+describe('ball lamp cable hole', () => {
+  it('is round on the ball, not taller than wide, low on its side', async () => {
+    const { loadKernel, withScope } = await import('../src/geometry/kernel');
+    const { defaultValues, sanitize } = await import('../src/core/shape');
+    const { addLithophanes } = await import('../src/litho/build');
+    const { sphereShape } = await import('../src/shapes/sphere');
+    const k = await loadKernel();
+    const grey = { cols: 64, rows: 64, data: new Float32Array(64 * 64).fill(0.5) };
+    const litho = (cableHole: boolean) => {
+      const p = sanitize(sphereShape, { ...defaultValues(sphereShape), sphereDiameter: 200, sphereHeight: 185, mount: 'standalone', cableHole });
+      const r = withScope(() => sphereShape.build(k, p));
+      withScope(() => addLithophanes(k, r, p, { [r.slots[0].id]: grey }, 1));
+      const part = r.parts.find((x) => x.id.startsWith('litho-') && !x.id.endsWith('-fins'))!;
+      return new k.Manifold(new k.wasm.Mesh({ numProp: 3, vertProperties: part.mesh.positions, triVerts: part.mesh.indices }));
+    };
+    withScope(() => {
+      const full = litho(false), holed = litho(true);
+      // the wall's mean thickness: volume over half the surface (outside and inside)
+      const t = full.volume() / (full.surfaceArea() / 2);
+      const removed = full.volume() - holed.volume();
+      // a round hole 15 mm across. The mean thickness counts the full-thickness rim, so even a
+      // round hole comes out at about 0.8 of this; squeezed sideways by the cosine of its
+      // latitude (about 48°, as before the fix) it was about 0.52
+      const share = removed / (Math.PI * 7.5 * 7.5 * t);
+      expect(share).toBeGreaterThan(0.7);
+      expect(share).toBeLessThan(1.1);
+    });
+  });
+});

@@ -102,8 +102,9 @@ export const boxGroups: ParamGroup[] = [
       { key: 'lampDiameter', type: 'number', default: 64, min: 20, max: 200, step: 0.5, unit: 'mm' },
       { key: 'lampSeatDepth', type: 'number', default: 1, min: 0, max: 20, step: 0.5, unit: 'mm' },
       { key: 'steelDisc', type: 'bool', default: false },
-      { key: 'discDiameter', type: 'number', default: 30, min: 5, max: 120, step: 0.5, unit: 'mm', visibleIf: disc },
-      { key: 'discDepth', type: 'number', default: 1, min: 0.2, max: 5, step: 0.1, unit: 'mm', visibleIf: disc },
+      // a measured disc (35 × 0.8 mm, as it came with the user's magnetic bulbs)
+      { key: 'discDiameter', type: 'number', default: 35, min: 5, max: 120, step: 0.5, unit: 'mm', visibleIf: disc },
+      { key: 'discDepth', type: 'number', default: 0.8, min: 0.2, max: 5, step: 0.1, unit: 'mm', visibleIf: disc },
       { key: 'discKeepClear', type: 'bool', default: true, visibleIf: disc },
       { key: 'baseGroove', type: 'number', default: 2.5, min: 1, max: 10, step: 0.5, unit: 'mm', advanced: true },
     ],
