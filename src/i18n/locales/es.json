@@ -1,5 +1,8 @@
 {
   "app.title": "Lithobox Creator",
+  "changes.title": "Novedades",
+  "changes.close": "Cerrar",
+  "changes.version": "Versión {commit}, {date}",
   "ui.advanced": "Mostrar ajustes avanzados",
   "ui.reset": "Restablecer",
   "ui.explode": "Despiece",

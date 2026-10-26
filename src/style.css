@@ -33,6 +33,16 @@ button, input, select { font: inherit; color: inherit; }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 .top-actions .btn { white-space: nowrap; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px; }
+.version { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 999px; padding: 3px 10px 3px 8px; font: inherit; font-size: 12px; font-weight: 550; cursor: pointer; }
+.version-date { color: var(--muted); font-weight: 400; }
+.version:hover { border-color: var(--accent); }
+.changes { max-width: min(560px, calc(100vw - 32px)); max-height: min(80dvh, 640px); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; background: var(--panel); color: var(--fg); }
+.changes::backdrop { background: rgb(0 0 0 / 0.35); }
+.changes-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.changes h2 { font-size: 16px; margin: 0; }
+.changes h3 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 14px 0 4px; }
+.changes ul { margin: 0; padding-left: 18px; }
+.changes li { margin: 3px 0; }
 .logo { width: 22px; height: 22px; border-radius: 5px; background: var(--accent); box-shadow: inset 0 0 0 5px var(--accent), inset 0 0 0 11px #fff3d6; }
 #lang { width: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
 
@@ -167,6 +177,7 @@ body.busy .status::before { content: ''; width: 8px; height: 8px; border-radius:
 
 /* phone-only controls: hidden on the desktop layout */
 .ico, .fold, .splitter, .btn.more, #export3mf .short { display: none; }
+.version .ico { display: block; width: 14px; height: 14px; fill: var(--accent); stroke: none; }
 
 @media (max-width: 760px) {
   /* Phone: one column exactly as high as the visible screen (dvh: with the browser's toolbar
@@ -178,6 +189,8 @@ body.busy .status::before { content: ''; width: 8px; height: 8px; border-radius:
   body { height: 100dvh; }
   .top { flex: none; height: 48px; padding: 0 12px; }
   .brand { font-size: 15px; white-space: nowrap; overflow: hidden; min-width: 0; }
+  .version-text, .version-date { display: none; }
+  .version { padding: 5px; }
   .top-actions { gap: 6px; flex-shrink: 0; }
   .top-actions .btn { display: inline-grid; place-items: center; width: 34px; height: 32px; padding: 0; }
   .top-actions .btn-text { display: none; }

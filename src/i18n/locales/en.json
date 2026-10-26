@@ -1,5 +1,8 @@
 {
   "app.title": "Lithobox Creator",
+  "changes.title": "What's new",
+  "changes.close": "Close",
+  "changes.version": "Version {commit}, {date}",
   "ui.advanced": "Show advanced settings",
   "ui.reset": "Reset",
   "ui.explode": "Explode",
