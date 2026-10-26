@@ -45,7 +45,11 @@ export function groundLevel(parts: Iterable<PartOutput>): number {
  */
 export function printLayout(parts: PartOutput[], bed: [number, number] = [256, 256]): { parts: PartOutput[]; plates: Plate[] } {
   const groups = new Map<string, PartOutput[]>();
-  for (const p of parts.filter((x) => !x.preview)) groups.set(p.object ?? p.id, [...(groups.get(p.object ?? p.id) ?? []), p]);
+  // a part without triangles would get a plate of its own with nothing on it: left out, but
+  // said in the console, as it means something upstream built nothing
+  const empty = parts.filter((x) => !x.preview && x.mesh.indices.length === 0);
+  if (empty.length) console.warn('print view: parts without geometry left out:', empty.map((x) => x.id).join(', '));
+  for (const p of parts.filter((x) => !x.preview && x.mesh.indices.length > 0)) groups.set(p.object ?? p.id, [...(groups.get(p.object ?? p.id) ?? []), p]);
   const plates = plateGrid(groups.size, bed);
   const placed: { src: PartOutput; rot: Vec3; t: Vec3 }[] = [];
   [...groups.values()].forEach((group, i) => {

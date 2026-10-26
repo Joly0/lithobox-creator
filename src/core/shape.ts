@@ -49,7 +49,8 @@ export function sanitize(shape: ShapeDefinition, input: Partial<ParamValues>): P
     if (p.type === 'number' && typeof v === 'number' && Number.isFinite(v)) out[p.key] = Math.min(p.max, Math.max(p.min, v));
     else if (p.type === 'bool' && typeof v === 'boolean') out[p.key] = v;
     else if (p.type === 'select' && typeof v === 'string' && p.options.includes(v)) out[p.key] = v;
-    else if (p.type === 'text' && typeof v === 'string') out[p.key] = (p.multiline ? v : v.replace(/\n/g, ' ')).slice(0, p.maxLength);
+    // a carriage return (text pasted from Windows) would show as a gap or a box in the letters
+    else if (p.type === 'text' && typeof v === 'string') out[p.key] = (p.multiline ? v.replace(/\r/g, '') : v.replace(/\r?\n|\r/g, ' ')).slice(0, p.maxLength);
     else if (p.type === 'color' && typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)) out[p.key] = v.toLowerCase();
   }
   settleFormats(out, allParams(shape));
