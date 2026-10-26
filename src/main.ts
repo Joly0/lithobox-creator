@@ -413,7 +413,9 @@ function partName(id: string): string {
 function renderInfo(r: BuildResult): void {
   const list = $('info');
   list.replaceChildren();
-  for (const w of r.warnings) {
+  // support fins only stay a separate part in the slicer 3MF (see supports.ts)
+  const warnings = r.parts.some((p) => p.id.endsWith('-fins')) ? [...r.warnings, { key: 'warn.finsMerged' }] : r.warnings;
+  for (const w of warnings) {
     const li = document.createElement('li');
     li.className = 'warn';
     li.textContent = t(w.key, w.vars);
@@ -421,8 +423,8 @@ function renderInfo(r: BuildResult): void {
   }
   // on a phone the warnings sit behind "More": count them on its badge
   const badge = $('moreBadge');
-  badge.textContent = String(r.warnings.length);
-  badge.hidden = !r.warnings.length;
+  badge.textContent = String(warnings.length);
+  badge.hidden = !warnings.length;
   for (const i of r.info) {
     const li = document.createElement('li');
     li.textContent = t(i.key, i.vars);

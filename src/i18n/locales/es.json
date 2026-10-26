@@ -274,6 +274,7 @@
   "slot.top": "Arriba",
   "litho.part": "Litofanía {slot}",
   "litho.fins": "Aletas de soporte {slot}",
+  "warn.finsMerged": "Las aletas de soporte solo se desprenden limpiamente con el 3MF para Bambu Studio / Orca. En STL y 3MF sencillo van unidas a la litofanía y el laminador las funde con ella.",
   "litho.cyan": "Color cian {slot}",
   "litho.magenta": "Color magenta {slot}",
   "litho.yellow": "Color amarillo {slot}",

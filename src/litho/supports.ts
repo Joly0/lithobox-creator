@@ -1,15 +1,20 @@
 // Breakaway fins that hold a lithophane upright while it prints, so it needs no brim.
 // Common practice for lithophanes printed standing (measured from a reference print), own geometry:
-// a thin tapered wall at each vertical edge on both faces, touching only the margin, each
-// standing on a thin floor pad that does not touch the panel.
+// a thin tapered wall at each vertical edge on both faces, against the margin, each standing on
+// a thin floor pad that does not touch the panel.
 //
 // Panel space as in mesh.ts (x right, y up, z out); the bed is at y = -height/2.
 import { box, cylinder, prism, type Kernel, type Manifold } from '../geometry/kernel';
 import type { PanelSpec } from './mesh';
 
 const FIN = 0.8; // wall thickness; within the 2 mm margin, so it never touches the picture
-/** Where the fin meets the panel it narrows to one line (width, depth off the face), so it breaks off cleanly. */
-const NECK = [0.4, 1];
+/**
+ * The fin stands this far off the panel face, as in the reference print. The slicer then gives
+ * fin and panel their own walls, which only touch, instead of running the panel's walls through
+ * the fin; that is what makes it break off cleanly. Needs the fins as a separate part: in one
+ * mesh the slicer's slice_closing_radius (0.049 mm) closes the gap again.
+ */
+const GAP = 0.01;
 const PAD = 0.4; // floor pad thickness (two layers)
 const PAD_GAP = 1.4; // pads stay this far from the panel so they don't fuse to it
 const RIB = [0.8, 2]; // stiffening rib on each fin: thickness, width (pointing inwards)
@@ -56,7 +61,7 @@ export function supportFins(k: Kernel, spec: PanelSpec, size = 'normal'): Manifo
     for (const face of [-1, 1]) {
       const x0 = side > 0 ? W / 2 - finW : -W / 2;
       const x1 = x0 + finW;
-      const z0 = (face * T) / 2;
+      const z0 = face * (T / 2 + GAP);
       // (depth from the face, inwards from the fin's inner side, height above the bed) to panel space
       const xIn = side > 0 ? x0 : x1;
       const at = (d: number, i: number, h: number): [number, number, number] => [xIn - side * i, bottom + h, z0 + face * d];
@@ -81,17 +86,7 @@ export function supportFins(k: Kernel, spec: PanelSpec, size = 'normal'): Manifo
       const px0 = side > 0 ? W / 2 - padW : -W / 2, px1 = px0 + padW;
       parts.push(box(k, [px0, bottom, Math.min(pz0, pz1)], [px1, bottom + PAD, Math.max(pz0, pz1)]));
     }
-  // the neck: next to each face only the outermost line of the fin is left, the rest (and the
-  // bevel's start) is cut back
-  const neckW = Math.min(NECK[0], finW);
-  const cuts: Manifold[] = [];
-  for (const side of [-1, 1])
-    for (const face of [-1, 1]) {
-      const xa = side * (W / 2 - neckW), xb = side * (W / 2 - neckW - 10);
-      const za = (face * T) / 2, zb = za + face * NECK[1];
-      cuts.push(box(k, [Math.min(xa, xb), bottom - 1, Math.min(za, zb)], [Math.max(xa, xb), H / 2 + 1, Math.max(za, zb)]));
-    }
-  return k.Manifold.union(parts).subtract(k.Manifold.union(cuts));
+  return k.Manifold.union(parts);
 }
 
 /**

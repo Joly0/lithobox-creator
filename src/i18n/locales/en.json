@@ -274,6 +274,7 @@
   "slot.top": "Top",
   "litho.part": "Lithophane {slot}",
   "litho.fins": "Support fins {slot}",
+  "warn.finsMerged": "Support fins break off cleanly only from the 3MF for Bambu Studio / Orca. In STL and Plain 3MF they are joined to the lithophane and the slicer fuses them to it.",
   "litho.cyan": "Cyan colour {slot}",
   "litho.magenta": "Magenta colour {slot}",
   "litho.yellow": "Yellow colour {slot}",
