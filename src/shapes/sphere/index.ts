@@ -12,12 +12,14 @@ import { ensureFont } from '../../geometry/text';
 import { applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, lampCuts, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
 import { spherePicture, type SphereProjection } from '../../litho/mesh';
 import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
-import { basePuck, baseSocket, onBase, sphereGroups, standalone } from './params';
+import { basePuck, baseSocket, onBase, sphereGroups, standalone, feetOn } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
 /** Cable hole at the back of a ball standing on its own: radius and height of its middle above the cut. */
 const HOLE_R = 7.5;
 const HOLE_Z = 12;
+/** Feet under a base (see feetOn): their radius. */
+const FOOT_R = 5;
 /** Bulb for the preview lamp in a socket: an A60. */
 const BULB = [60, 105];
 
@@ -46,6 +48,8 @@ export interface SphereLayout {
   picture: [number, number];
   /** Base (on a base only): top, outside radius, groove. */
   baseTop: number;
+  /** Height of the feet under the base, 0 without them: the base starts there. */
+  lift: number;
   rBase: number;
   groove: number;
   hole: number;
@@ -91,7 +95,8 @@ export function sphereLayout(p: ParamValues): SphereLayout {
   const picture = spherePicture(projection, [(band[0] + sMid) / rMid, (band[1] + sMid) / rMid], half, rMid, blend, around);
 
   const groove = onBase(p) ? num(p, 'baseGroove') : 0;
-  const baseTop = !onBase(p) ? 0 : baseSocket(p) ? num(p, 'socketRoom') + SOCKET_PLATE : num(p, 'baseHeight');
+  const lift = feetOn(p) ? num(p, 'footHeight') : 0;
+  const baseTop = !onBase(p) ? 0 : lift + (baseSocket(p) ? num(p, 'socketRoom') + SOCKET_PLATE : num(p, 'baseHeight'));
   const cutZ = onBase(p) ? baseTop - groove : 0;
   // the ball's widest point inside the groove: at the groove's top
   const zTopRel = baseTop - cutZ - c;
@@ -101,7 +106,7 @@ export function sphereLayout(p: ParamValues): SphereLayout {
   let cable: CableSlot | null = null;
   let power: PowerLayout | null = null;
   if (basePuck(p)) {
-    if (groove + num(p, 'lampSeatDepth') > baseTop - 1) warnings.push({ key: 'warn.baseTooThin' });
+    if (groove + num(p, 'lampSeatDepth') > baseTop - lift - 1) warnings.push({ key: 'warn.baseTooThin' });
     if (num(p, 'lampDiameter') > 2 * (opening - gap) - 2) warnings.push({ key: 'warn.lampTooBig', vars: { max: round(2 * (opening - gap) - 2) } });
     cable = cableSlot(p, opening - gap - 1.5, warnings);
     if (bool(p, 'powerBase')) {
@@ -122,7 +127,7 @@ export function sphereLayout(p: ParamValues): SphereLayout {
   const widest = 2 * Math.max(rOut, onBase(p) ? rBase : 0);
   if (widest > num(p, 'bedSize')) warnings.push({ key: 'warn.bed', vars: { size: round(widest), bed: num(p, 'bedSize') } });
 
-  return { rOut, rIn, rMid, thick, gap, c, cutZ, opening, sMid, length, edge, band, projection, half, blend, around, picture, baseTop, rBase, groove, hole, cable, power, warnings };
+  return { rOut, rIn, rMid, thick, gap, c, cutZ, opening, sMid, length, edge, band, projection, half, blend, around, picture, baseTop, lift, rBase, groove, hole, cable, power, warnings };
 }
 
 /** The base: a disc with a lamp seat, or a hollow drum with the socket in its plate; the ball's rim in a groove. */
@@ -131,9 +136,15 @@ function buildBase(k: Kernel, p: ParamValues, L: SphereLayout): Manifold {
   const zRel = L.baseTop - L.cutZ - L.c;
   const outTop = Math.sqrt(L.rOut * L.rOut - zRel * zRel);
   const groove = cylinder(k, 0, 0, L.cutZ, L.groove + 1, outTop + L.gap).subtract(cylinder(k, 0, 0, L.cutZ - 1, L.groove + 3, L.opening - L.gap));
-  const base = cylinder(k, 0, 0, 0, L.baseTop, L.rBase);
+  let base = cylinder(k, 0, 0, L.lift, L.baseTop - L.lift, L.rBase);
+  if (L.lift > 0) {
+    // three small feet near the rim, printed with the base; the cable runs out between them
+    const r = FOOT_R, at = L.rBase - r - 1;
+    const feet = [90, 210, 330].map((a) => cylinder(k, at * Math.cos((a * Math.PI) / 180), at * Math.sin((a * Math.PI) / 180), 0, L.lift + 0.01, r));
+    base = base.add(k.Manifold.union(feet));
+  }
   if (baseSocket(p)) {
-    return base.subtract(k.Manifold.union([groove, ...socketDrumCuts(k, L.baseTop, L.opening - L.gap, L.hole, L.rBase)]));
+    return base.subtract(k.Manifold.union([groove, ...socketDrumCuts(k, L.baseTop, L.opening - L.gap, L.hole, L.rBase, L.lift)]));
   }
   const cuts = [groove, ...lampCuts(k, p, 0, L.baseTop), ...cableCuts(k, p, L.cable!, 0, L.baseTop, L.rBase)];
   if (L.power) cuts.push(...powerUnderside(k, p, L.power));
@@ -147,6 +158,8 @@ export const sphereShape: ShapeDefinition = {
     { id: 'replacement', values: { sphereDiameter: 200, sphereHeight: 185, mount: 'standalone' } },
     { id: 'globeSmall', values: { sphereDiameter: 160, sphereHeight: 146, mount: 'base' } },
     { id: 'globeLarge', values: { sphereDiameter: 250, sphereHeight: 236, mount: 'base' } },
+    // like an IKEA FADO: an E27 socket clamped in the base, small feet, the cable out underneath
+    { id: 'fado', values: { sphereDiameter: 200, sphereHeight: 185, mount: 'base', tableLamp: 'socket', socket: 'e27', baseFeet: true } },
   ],
   validate: (p) => sphereLayout(p).warnings,
   async prepare(p) {
@@ -164,7 +177,7 @@ export const sphereShape: ShapeDefinition = {
       let tray = P ? roundTray(k, p, L.rBase, P) : null;
       const tr = P ? L.rBase + POWER_WALL + powerFit(p) : L.rBase;
       const arc = ((2 * Math.PI) / 3) * tr - 8;
-      const t = P ? curvedText(k, p, 0, 0, tr, powerTextZ(P), arc, P.inner - 4) : curvedText(k, p, 0, 0, L.rBase, L.baseTop / 2, arc, Math.min(L.baseTop - 2, 20));
+      const t = P ? curvedText(k, p, 0, 0, tr, powerTextZ(P), arc, P.inner - 4) : curvedText(k, p, 0, 0, L.rBase, (L.lift + L.baseTop) / 2, arc, Math.min(L.baseTop - L.lift - 2, 20));
       if (tray) tray = applyFrontText(tray, t, warnings);
       else base = applyFrontText(base, t, warnings);
       parts.push({ id: 'base', mesh: toMeshData(base), color: COLORS.base, explode: [0, 0, 0], printRotation: [0, 0, 0] });

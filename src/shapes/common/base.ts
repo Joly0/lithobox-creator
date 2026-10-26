@@ -72,11 +72,12 @@ export const DRUM_WALL = 2.4;
 /**
  * Hollow under a base for a lamp socket's body: the drum inside a wall of DRUM_WALL within
  * radius `rOut`, the socket's hole through the plate, and a notch at the back for the cable.
+ * `z0`: the drum's underside (above the floor on feet).
  */
-export function socketDrumCuts(k: Kernel, baseTop: number, rOut: number, hole: number, rBase: number): Manifold[] {
-  const chamber = cylinder(k, 0, 0, -1, baseTop - SOCKET_PLATE + 1, rOut - DRUM_WALL);
+export function socketDrumCuts(k: Kernel, baseTop: number, rOut: number, hole: number, rBase: number, z0 = 0): Manifold[] {
+  const chamber = cylinder(k, 0, 0, z0 - 1, baseTop - SOCKET_PLATE - z0 + 1, rOut - DRUM_WALL);
   const through = cylinder(k, 0, 0, baseTop - SOCKET_PLATE - 1, SOCKET_PLATE + 2, hole / 2);
-  const notch = box(k, [-5, 0, -1], [5, rBase + 1, 8]);
+  const notch = box(k, [-5, 0, z0 - 1], [5, rBase + 1, z0 + 8]);
   return [chamber, through, notch];
 }
 

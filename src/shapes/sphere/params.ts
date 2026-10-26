@@ -9,6 +9,8 @@ export const standalone = (p: ParamValues) => p.mount === 'standalone';
 export const onBase = (p: ParamValues) => p.mount === 'base';
 export const basePuck = (p: ParamValues) => onBase(p) && p.tableLamp === 'puck';
 export const baseSocket = (p: ParamValues) => onBase(p) && p.tableLamp === 'socket';
+/** Small feet under the base (as an IKEA FADO's): not with a battery tray, which sits there. */
+export const feetOn = (p: ParamValues) => onBase(p) && p.baseFeet === true && !(basePuck(p) && p.powerBase === true);
 
 const litho = boxGroups.find((g) => g.id === 'litho')!;
 
@@ -52,6 +54,8 @@ export const sphereGroups: ParamGroup[] = [
       ...keys(basePuck, 'baseHeight', 'lampDiameter', 'lampSeatDepth', 'steelDisc', 'discDiameter', 'discDepth', 'discKeepClear'),
       fromBox('baseGroove', onBase, { default: 4 }),
       { key: 'baseRim', type: 'number', default: 6, min: 2, max: 30, step: 0.5, unit: 'mm', advanced: true, visibleIf: onBase },
+      { key: 'baseFeet', type: 'bool', default: false, visibleIf: (p) => onBase(p) && !(basePuck(p) && p.powerBase === true) },
+      { key: 'footHeight', type: 'number', default: 6, min: 2, max: 30, step: 0.5, unit: 'mm', visibleIf: feetOn },
     ],
   },
   {

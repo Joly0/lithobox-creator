@@ -120,3 +120,36 @@ describe('ball lamp cable hole', () => {
     });
   });
 });
+
+describe('ball lamp in the style of a FADO', () => {
+  it('stands on three feet, the ball raised by their height, the cable free underneath', async () => {
+    const { loadKernel, withScope } = await import('../src/geometry/kernel');
+    const { defaultValues, sanitize } = await import('../src/core/shape');
+    const { sphereShape } = await import('../src/shapes/sphere');
+    const k = await loadKernel();
+    const fado = sphereShape.presets!.find((x) => x.id === 'fado')!.values;
+    const build = (feet: boolean) => {
+      const p = sanitize(sphereShape, { ...defaultValues(sphereShape), ...fado, baseFeet: feet });
+      return { p, r: withScope(() => sphereShape.build(k, p)) };
+    };
+    const on = build(true), off = build(false);
+    expect(on.r.warnings.map((w) => w.key)).toEqual([]);
+    const lowest = (r: typeof on.r, id: string) => {
+      const pos = r.parts.find((x) => x.id === id)!.mesh.positions;
+      let z = Infinity;
+      for (let i = 2; i < pos.length; i += 3) z = Math.min(z, pos[i]);
+      return z;
+    };
+    // the ball and its base sit higher by the feet, which stand on the floor
+    expect(lowest(on.r, 'base')).toBeCloseTo(0, 6);
+    const ball = on.r.parts.find((x) => x.preview && x.id.startsWith('panel'))!.id;
+    expect(lowest(on.r, ball) - lowest(off.r, ball)).toBeCloseTo(on.p.footHeight as number, 3);
+    withScope(() => {
+      const part = on.r.parts.find((x) => x.id === 'base')!;
+      const base = new k.Manifold(new k.wasm.Mesh({ numProp: 3, vertProperties: part.mesh.positions, triVerts: part.mesh.indices }));
+      // half way up the feet: three separate feet and nothing else
+      const slice = base.slice((on.p.footHeight as number) / 2);
+      expect(slice.toPolygons().length).toBe(3);
+    });
+  });
+});
