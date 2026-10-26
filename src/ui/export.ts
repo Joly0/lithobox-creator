@@ -27,11 +27,33 @@ export function printObjects(r: BuildResult, partName: PartName): (PrintObject &
   });
 }
 
-/** Printable parts in print orientation; volumes of one object are oriented together. */
-export function printable(r: BuildResult, partName: PartName) {
-  return printObjects(r, partName).flatMap((o, i) =>
-    o.volumes.map((v, j) => ({ id: o.volumes.length > 1 ? `${o.ids[j]}` : o.ids[0], name: v.name, positions: v.positions, indices: v.indices, key: `${i}-${j}` })),
-  );
+/**
+ * Files for formats without parts (STL, plain 3MF): the volumes of one object on its first
+ * filament become one mesh, so a lithophane's support fins stay on it; volumes meant for
+ * another filament (second-colour text, colour layers) stay files of their own, to be added
+ * as parts in the slicer. Named by the object, or by the volume for the separate ones.
+ */
+export function printFiles(r: BuildResult, partName: PartName) {
+  return printObjects(r, partName).flatMap((o, i) => {
+    const main = o.volumes.map((v, j) => ({ v, j })).filter(({ v }) => (v.extruder ?? 1) === 1);
+    const rest = o.volumes.map((v, j) => ({ v, j })).filter(({ v }) => (v.extruder ?? 1) !== 1);
+    const files = rest.map(({ v, j }) => ({ id: o.ids[j], name: v.name, positions: v.positions, indices: v.indices, key: `${i}-${j}` }));
+    if (main.length) {
+      const count = main.reduce((n, { v }) => n + v.positions.length, 0);
+      const positions = new Float32Array(count);
+      const indices = new Uint32Array(main.reduce((n, { v }) => n + v.indices.length, 0));
+      let pOff = 0, iOff = 0;
+      for (const { v } of main) {
+        positions.set(v.positions, pOff);
+        for (let k = 0; k < v.indices.length; k++) indices[iOff + k] = v.indices[k] + pOff / 3;
+        pOff += v.positions.length;
+        iOff += v.indices.length;
+      }
+      // the object's own id: the first volume's, which names the object (a lithophane, a body)
+      files.unshift({ id: o.ids[main[0].j], name: o.name, positions, indices, key: `${i}` });
+    }
+    return files;
+  });
 }
 
 /** Slicer objects for a profile: parts meant for a filament it doesn't have go to filament 1. */
@@ -74,18 +96,18 @@ export function wireExports(ctx: ExportContext, buttons: { bambu: HTMLElement; p
   buttons.plain.addEventListener('click', async () => {
     const r = await ctx.result();
     if (!r) return;
-    save(await to3mf(printable(r, ctx.partName), ctx.title()), `${ctx.baseName()}-plain.3mf`);
+    save(await to3mf(printFiles(r, ctx.partName), ctx.title()), `${ctx.baseName()}-plain.3mf`);
   });
   buttons.stl.addEventListener('click', async () => {
     const r = await ctx.result();
     if (!r) return;
-    const files = printable(r, ctx.partName).map((p) => ({ name: `${ctx.baseName()}-${p.id}.stl`, data: toStl(p.positions, p.indices) }));
+    const files = printFiles(r, ctx.partName).map((p) => ({ name: `${ctx.baseName()}-${p.id}.stl`, data: toStl(p.positions, p.indices) }));
     save(await zip(files), `${ctx.baseName()}-stl.zip`);
   });
   return async (partId) => {
     const r = await ctx.result();
     if (!r) return;
-    const p = printable(r, ctx.partName).find((x) => x.id === partId);
+    const p = printFiles(r, ctx.partName).find((x) => x.id === partId);
     if (p) save(new Blob([toStl(p.positions, p.indices) as BlobPart]), `${ctx.baseName()}-${p.id}.stl`);
   };
 }
