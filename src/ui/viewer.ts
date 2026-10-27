@@ -7,6 +7,7 @@ import type { ColourMap } from '../litho/colour';
 import type { Luminance } from '../litho/mesh';
 import { explodedLight, lampFor, lampPoint } from './lamplight';
 import { groundLevel, type Plate } from './printlayout';
+import { reliefView } from './reliefview';
 import { lampMaterial, lampTexture, tintTexture, type LampMap } from './lampmaterial';
 
 export { MASK_POINTS, type LampMap } from './lampmaterial';
@@ -14,6 +15,8 @@ export { MASK_POINTS, type LampMap } from './lampmaterial';
 interface PartView {
   part: PartOutput;
   mesh: THREE.Mesh;
+  /** A mesh too big for one GPU buffer: its further pieces, children of `mesh` (see chunks.ts). */
+  chunks: THREE.Mesh[];
   edges: THREE.LineSegments | null;
   /** Assembled position; the explode offset is added to it. */
   base: THREE.Vector3;
@@ -183,6 +186,7 @@ export class Viewer implements ModelViewer {
   setParts(parts: PartOutput[]): void {
     for (const v of this.views) {
       v.mesh.geometry.dispose();
+      for (const c of v.chunks) c.geometry.dispose();
       v.normal.dispose();
       v.lit?.dispose();
       v.edges?.geometry.dispose();
@@ -191,14 +195,6 @@ export class Viewer implements ModelViewer {
     }
     // support fins are for printing only; they would hide the assembled box
     this.views = parts.filter((part) => !part.printOnly).map((part) => {
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.BufferAttribute(part.mesh.positions, 3));
-      g.setIndex(new THREE.BufferAttribute(part.mesh.indices, 1));
-      g.computeVertexNormals();
-      // Shared vertices at sharp edges smear the shading into dark patches (around holes,
-      // in corners); creased normals keep sharp edges sharp and round walls smooth.
-      // (lithophane relief is all gentle slopes: plain smooth normals, and much faster)
-      const shaded = part.relief ? g : toCreasedNormals(g, (EDGE_ANGLE * Math.PI) / 180);
       const m = new THREE.MeshStandardMaterial({
         color: part.color,
         roughness: 0.65,
@@ -210,59 +206,54 @@ export class Viewer implements ModelViewer {
         flatShading: false,
       });
       let lit: THREE.Material | null = null;
+      let g: THREE.BufferGeometry | null = null;
+      let pieces: THREE.BufferGeometry[];
       if (part.relief) {
-        // thickness per vertex (the relief is built with its back as the lowest z): shown until
-        // the lamp texture arrives
-        const pos = g.getAttribute('position');
-        const local = part.mesh.local;
-        let minT = Infinity, maxT = 0;
-        const thick = new Float32Array(pos.count);
-        // each vertex's place in the flat picture, for the picture texture
-        const plocal = new Float32Array(pos.count * 2);
-        if (local) {
-          // curved: the mesh brings its place in the picture and its thickness along
-          for (let i = 0; i < pos.count; i++) {
-            plocal[i * 2] = local[i * 3];
-            plocal[i * 2 + 1] = local[i * 3 + 1];
-            maxT = Math.max(maxT, (thick[i] = local[i * 3 + 2]));
-          }
-        } else {
-          let minZ = Infinity;
-          for (let i = 0; i < pos.count; i++) minZ = Math.min(minZ, pos.getZ(i));
-          for (let i = 0; i < pos.count; i++) {
-            plocal[i * 2] = pos.getX(i);
-            plocal[i * 2 + 1] = pos.getY(i);
-            maxT = Math.max(maxT, (thick[i] = pos.getZ(i) - minZ));
-          }
-        }
-        g.setAttribute('plocal', new THREE.BufferAttribute(plocal, 2));
-        const grid = part.reliefGrid ? part.reliefGrid[0] * part.reliefGrid[1] : pos.count;
-        for (let i = 0; i < grid; i++) minT = Math.min(minT, thick[i]);
-        // back and side walls: full thickness, so the panel edges stay dark
-        for (let i = grid; i < pos.count; i++) thick[i] = maxT;
-        g.setAttribute('thick', new THREE.BufferAttribute(thick, 1));
+        // worked out by the build worker; in pieces when too big for one GPU buffer
+        const rv = part.view ?? reliefView(part);
+        pieces = rv.pieces.map((c) => {
+          const pg = new THREE.BufferGeometry();
+          pg.setAttribute('position', new THREE.BufferAttribute(c.position, 3));
+          pg.setAttribute('normal', new THREE.BufferAttribute(c.normal, 3));
+          pg.setAttribute('plocal', new THREE.BufferAttribute(c.plocal, 2));
+          pg.setAttribute('thick', new THREE.BufferAttribute(c.thick, 1));
+          pg.setIndex(new THREE.BufferAttribute(c.indices, 1));
+          return pg;
+        });
         const normal = part.matrix ? new THREE.Vector3(part.matrix[8], part.matrix[9], part.matrix[10]).normalize() : new THREE.Vector3(0, 0, 1);
         // a mirrored panel (a colour picture shows its back): its outside is still outside
         if (part.matrix && new THREE.Matrix4().fromArray(part.matrix).determinant() < 0) normal.negate();
-        g.computeBoundingBox();
-        const size = g.boundingBox!.getSize(new THREE.Vector3());
-        lit = lampMaterial(normal, Math.max(size.x, size.y) * 0.9, minT, maxT, part.wrapRadius ?? 0, part.mask, part.wrapSphere, part.sphereProjection);
+        lit = lampMaterial(normal, Math.max(...rv.size) * 0.9, rv.minT, rv.maxT, part.wrapRadius ?? 0, part.mask, part.wrapSphere, part.sphereProjection);
+      } else {
+        g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(part.mesh.positions, 3));
+        g.setIndex(new THREE.BufferAttribute(part.mesh.indices, 1));
+        g.computeVertexNormals();
+        // Shared vertices at sharp edges smear the shading into dark patches (around holes,
+        // in corners); creased normals keep sharp edges sharp and round walls smooth.
+        pieces = [toCreasedNormals(g, (EDGE_ANGLE * Math.PI) / 180)];
       }
-      const mesh = new THREE.Mesh(shaded, m);
+      const mesh = new THREE.Mesh(pieces[0], m);
       mesh.renderOrder = part.ghost ? 1 : 0;
+      const chunks = pieces.slice(1).map((pg) => {
+        const c = new THREE.Mesh(pg, m);
+        c.renderOrder = mesh.renderOrder;
+        mesh.add(c);
+        return c;
+      });
       // outlines make recesses, slots and text readable on single-colour parts
       let edges: THREE.LineSegments | null = null;
-      if (!part.ghost && !part.relief) {
+      if (g && !part.ghost) {
         edges = new THREE.LineSegments(
           new THREE.EdgesGeometry(g, EDGE_ANGLE),
           new THREE.LineBasicMaterial({ color: 0x1d2127, transparent: true, opacity: 0.45 }),
         );
         mesh.add(edges);
       }
-      if (shaded !== g) g.dispose();
+      g?.dispose();
       if (part.matrix) mesh.applyMatrix4(new THREE.Matrix4().fromArray(part.matrix));
       this.root.add(mesh);
-      return { part, mesh, edges, base: mesh.position.clone(), normal: m, lit };
+      return { part, mesh, chunks, edges, base: mesh.position.clone(), normal: m, lit };
     });
     // the light source for the lamp view: the shape's lamp when it is behind the picture,
     // otherwise a virtual one behind each picture (see lamplight.ts)
@@ -364,7 +355,7 @@ export class Viewer implements ModelViewer {
     const ndc = new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, this.camera);
-    const solid = this.views.filter((v) => v.mesh.visible && !v.part.ghost).map((v) => v.mesh);
+    const solid = this.views.filter((v) => v.mesh.visible && !v.part.ghost).flatMap((v) => [v.mesh, ...v.chunks]);
     const hit = ray.intersectObjects(solid, false)[0];
     if (!hit) return;
     const shift = hit.point.clone().sub(this.controls.target);
@@ -472,6 +463,7 @@ export class Viewer implements ModelViewer {
       (v.normal as THREE.MeshStandardMaterial).clippingPlanes = planes;
       if (v.lit) v.lit.clippingPlanes = planes;
       v.mesh.material = this.lampOn && v.lit ? v.lit : v.normal;
+      for (const c of v.chunks) c.material = v.mesh.material;
       if (v.edges) {
         v.edges.visible = this.edgesOn;
         (v.edges.material as THREE.LineBasicMaterial).clippingPlanes = planes;

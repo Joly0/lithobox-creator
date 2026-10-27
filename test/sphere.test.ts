@@ -77,9 +77,11 @@ describe('ball lamp', { timeout: 60000 }, () => {
     });
   });
 
-  for (const tableLamp of ['puck', 'socket'])
-    it(`sits in its base (${tableLamp})`, async () => {
-      const { k, r, litho } = await ball({ mount: 'base', tableLamp, sphereDiameter: 160, sphereHeight: 146 });
+  for (const [tableLamp, socketInside] of [['puck', false], ['socket', false], ['socket', true]] as const)
+    it(`sits in its base (${tableLamp}${socketInside ? ', inside' : ''})`, async () => {
+      // an A60 bulb on its socket needs the 20 cm ball when the socket stands inside it
+      const size = socketInside ? { sphereDiameter: 200, sphereHeight: 185 } : { sphereDiameter: 160, sphereHeight: 146 };
+      const { k, r, litho } = await ball({ mount: 'base', tableLamp, socketInside, ...size });
       expect(r.warnings.map((w) => w.key)).toEqual([]);
       withScope(() => {
         const base = placed(k, r.parts.find((x) => x.id === 'base')!);
@@ -121,35 +123,64 @@ describe('ball lamp cable hole', () => {
   });
 });
 
-describe('ball lamp in the style of a FADO', () => {
-  it('stands on three feet, the ball raised by their height, the cable free underneath', async () => {
-    const { loadKernel, withScope } = await import('../src/geometry/kernel');
-    const { defaultValues, sanitize } = await import('../src/core/shape');
-    const { sphereShape } = await import('../src/shapes/sphere');
-    const k = await loadKernel();
-    const fado = sphereShape.presets!.find((x) => x.id === 'fado')!.values;
-    const build = (feet: boolean) => {
-      const p = sanitize(sphereShape, { ...defaultValues(sphereShape), ...fado, baseFeet: feet });
-      return { p, r: withScope(() => sphereShape.build(k, p)) };
+describe('ball lamp on feet', () => {
+  // every base that can stand on feet: the low plate with the socket inside, the socket's drum, a puck light's disc
+  const variants: [string, Partial<ParamValues>][] = [
+    ['low plate', sphereShape.presets!.find((x) => x.id === 'globeLow')!.values],
+    ['socket drum', { mount: 'base', tableLamp: 'socket', socketInside: false }],
+    ['puck', { mount: 'base', tableLamp: 'puck', cableChannel: true }],
+  ];
+  for (const [name, values] of variants)
+    it(`stands on three feet, the ball raised by their height, the cable free underneath (${name})`, async () => {
+      const k = await loadKernel();
+      const build = (feet: boolean) => {
+        const p = sanitize(sphereShape, { ...defaultValues(sphereShape), ...values, baseFeet: feet });
+        return { p, r: withScope(() => sphereShape.build(k, p)) };
+      };
+      const on = build(true), off = build(false);
+      expect(on.r.warnings.map((w) => w.key)).toEqual([]);
+      const lowest = (r: typeof on.r, id: string) => {
+        const pos = r.parts.find((x) => x.id === id)!.mesh.positions;
+        let z = Infinity;
+        for (let i = 2; i < pos.length; i += 3) z = Math.min(z, pos[i]);
+        return z;
+      };
+      // the ball and its base sit higher by the feet, which stand on the floor
+      expect(lowest(on.r, 'base')).toBeCloseTo(0, 6);
+      const ball = on.r.parts.find((x) => x.preview && x.id.startsWith('panel'))!.id;
+      expect(lowest(on.r, ball) - lowest(off.r, ball)).toBeCloseTo(on.p.footHeight as number, 3);
+      withScope(() => {
+        const part = on.r.parts.find((x) => x.id === 'base')!;
+        const base = new k.Manifold(new k.wasm.Mesh({ numProp: 3, vertProperties: part.mesh.positions, triVerts: part.mesh.indices }));
+        // just under the base: three separate feet (none lost to the cable notch or channel) and nothing else
+        const slice = base.slice((on.p.footHeight as number) - 0.5);
+        expect(slice.toPolygons().length).toBe(3);
+      });
+    }, 60000);
+});
+
+describe('ball lamp with the socket inside', () => {
+  it('stands on a low plate, the bulb clear of the top', () => {
+    const p = sanitize(sphereShape, { ...defaultValues(sphereShape), ...sphereShape.presets!.find((x) => x.id === 'globeLow')!.values });
+    const L = sphereLayout(p);
+    expect(L.warnings).toEqual([]);
+    // feet, the nut's recess, 2 mm, the groove: no tall drum
+    expect(L.baseTop).toBeLessThan(20);
+    // a socket too tall for the ball brings the bulb near its top
+    const tall = sanitize(sphereShape, { ...p, socketHeight: 100 });
+    expect(sphereLayout(tall).warnings.map((w) => w.key)).toContain('warn.bulbClose');
+  });
+});
+
+describe('ball lamp presets', () => {
+  it('build the same whichever preset was picked before (none keeps the last one\'s lamp or feet)', () => {
+    const presets = sphereShape.presets!;
+    const shape = (values: Partial<ParamValues>) => {
+      const p = sanitize(sphereShape, { ...defaultValues(sphereShape), ...values });
+      const L = sphereLayout(p);
+      return { mount: p.mount, lamp: p.mount === 'base' ? p.tableLamp : null, baseTop: L.baseTop, lift: L.lift };
     };
-    const on = build(true), off = build(false);
-    expect(on.r.warnings.map((w) => w.key)).toEqual([]);
-    const lowest = (r: typeof on.r, id: string) => {
-      const pos = r.parts.find((x) => x.id === id)!.mesh.positions;
-      let z = Infinity;
-      for (let i = 2; i < pos.length; i += 3) z = Math.min(z, pos[i]);
-      return z;
-    };
-    // the ball and its base sit higher by the feet, which stand on the floor
-    expect(lowest(on.r, 'base')).toBeCloseTo(0, 6);
-    const ball = on.r.parts.find((x) => x.preview && x.id.startsWith('panel'))!.id;
-    expect(lowest(on.r, ball) - lowest(off.r, ball)).toBeCloseTo(on.p.footHeight as number, 3);
-    withScope(() => {
-      const part = on.r.parts.find((x) => x.id === 'base')!;
-      const base = new k.Manifold(new k.wasm.Mesh({ numProp: 3, vertProperties: part.mesh.positions, triVerts: part.mesh.indices }));
-      // half way up the feet: three separate feet and nothing else
-      const slice = base.slice((on.p.footHeight as number) / 2);
-      expect(slice.toPolygons().length).toBe(3);
-    });
+    for (const b of presets)
+      for (const a of presets) expect(shape({ ...a.values, ...b.values }), `${b.id} after ${a.id}`).toEqual(shape(b.values));
   });
 });

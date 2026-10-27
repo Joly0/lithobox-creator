@@ -2,6 +2,7 @@
 import wasmUrl from 'manifold-3d/manifold.wasm?url';
 import { sanitize } from '../core/shape';
 import type { BuildResult, ParamValues } from '../core/types';
+import { reliefView } from '../ui/reliefview';
 import { addLithophanes, PREVIEW_RES } from '../litho/build';
 import type { Luminance } from '../litho/mesh';
 import { getShape } from '../shapes';
@@ -38,7 +39,10 @@ self.onmessage = async (ev: MessageEvent<BuildRequest>) => {
       if (pictures && Object.keys(pictures).length) addLithophanes(k, r, params, pictures, resolution ?? PREVIEW_RES);
       return r;
     });
-    const transfer = result.parts.flatMap((p) => [p.mesh.positions.buffer, p.mesh.indices.buffer, ...(p.mesh.local ? [p.mesh.local.buffer] : [])]);
+    // what the 3D view draws of each relief, worked out here so the page does not stall on it
+    for (const p of result.parts) if (p.relief) p.view = reliefView(p);
+    // (a relief small enough for one GPU buffer shares its mesh's buffers: each listed once)
+    const transfer = [...new Set(result.parts.flatMap((p) => [p.mesh.positions, p.mesh.indices, ...(p.mesh.local ? [p.mesh.local] : []), ...(p.view?.pieces.flatMap((c) => [c.indices, c.position, c.normal, c.plocal, c.thick]) ?? [])].map((a) => a.buffer)))];
     const msg: BuildResponse = { id, ok: true, result, ms: performance.now() - t0 };
     (self as unknown as Worker).postMessage(msg, transfer);
   } catch (e) {

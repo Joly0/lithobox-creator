@@ -9,10 +9,10 @@ import { bool, num, round, type ShapeDefinition, str } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
 import { box, cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
-import { applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, lampCuts, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
+import { applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, bulbShape, lampCuts, PUCK_H, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
 import { spherePicture, type SphereProjection } from '../../litho/mesh';
 import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
-import { basePuck, baseSocket, onBase, sphereGroups, standalone, feetOn } from './params';
+import { basePuck, baseSocket, onBase, sphereGroups, socketUp, standalone, feetOn } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
 /** Cable hole at the back of a ball standing on its own: radius and height of its middle above the cut. */
@@ -20,8 +20,19 @@ const HOLE_R = 7.5;
 const HOLE_Z = 12;
 /** Feet under a base (see feetOn): their radius. */
 const FOOT_R = 5;
+/**
+ * Socket inside the ball (see socketUp): the hole for its M10x1 threaded tube, and a round
+ * recess under the plate for the nut (and washer, up to 17 mm across flats), from which a
+ * channel takes the cable out at the back.
+ */
+const NIPPLE_HOLE = 10.5;
+const NUT_R = 11;
+const NUT_DEPTH = 6;
+const CHANNEL_W = 8;
+/** Room the bulb keeps from the inside of the ball's top (heat, and fitting the ball over it). */
+const BULB_CLEAR = 10;
 /** Bulb for the preview lamp in a socket: an A60. */
-const BULB = [60, 105];
+const BULB = [60, 105] as const;
 
 export interface SphereLayout {
   /** Outside and back (inside) radius, and half way between. */
@@ -96,7 +107,8 @@ export function sphereLayout(p: ParamValues): SphereLayout {
 
   const groove = onBase(p) ? num(p, 'baseGroove') : 0;
   const lift = feetOn(p) ? num(p, 'footHeight') : 0;
-  const baseTop = !onBase(p) ? 0 : lift + (baseSocket(p) ? num(p, 'socketRoom') + SOCKET_PLATE : num(p, 'baseHeight'));
+  // a socket inside the ball needs only a plate: the groove, and the nut's recess under it
+  const baseTop = !onBase(p) ? 0 : lift + (socketUp(p) ? groove + NUT_DEPTH + 2 : baseSocket(p) ? num(p, 'socketRoom') + SOCKET_PLATE : num(p, 'baseHeight'));
   const cutZ = onBase(p) ? baseTop - groove : 0;
   // the ball's widest point inside the groove: at the groove's top
   const zTopRel = baseTop - cutZ - c;
@@ -123,7 +135,10 @@ export function sphereLayout(p: ParamValues): SphereLayout {
       }, warnings);
     }
   }
-  if (baseSocket(p) && hole / 2 + 4 > opening - gap - DRUM_WALL) warnings.push({ key: 'warn.lampTooBig', vars: { max: round(2 * (opening - gap - DRUM_WALL - 4)) } });
+  if (socketUp(p)) {
+    const room = cutZ + c + rIn - (baseTop + num(p, 'socketHeight') + BULB[1]);
+    if (room < BULB_CLEAR) warnings.push({ key: 'warn.bulbClose', vars: { gap: round(room) } });
+  } else if (baseSocket(p) && hole / 2 + 4 > opening - gap - DRUM_WALL) warnings.push({ key: 'warn.lampTooBig', vars: { max: round(2 * (opening - gap - DRUM_WALL - 4)) } });
   const widest = 2 * Math.max(rOut, onBase(p) ? rBase : 0);
   if (widest > num(p, 'bedSize')) warnings.push({ key: 'warn.bed', vars: { size: round(widest), bed: num(p, 'bedSize') } });
 
@@ -138,10 +153,20 @@ function buildBase(k: Kernel, p: ParamValues, L: SphereLayout): Manifold {
   const groove = cylinder(k, 0, 0, L.cutZ, L.groove + 1, outTop + L.gap).subtract(cylinder(k, 0, 0, L.cutZ - 1, L.groove + 3, L.opening - L.gap));
   let base = cylinder(k, 0, 0, L.lift, L.baseTop - L.lift, L.rBase);
   if (L.lift > 0) {
-    // three small feet near the rim, printed with the base; the cable runs out between them
+    // three small feet near the rim, printed with the base; the cable runs out at the back (+Y)
+    // between the two back feet, so none stands in its notch or channel
     const r = FOOT_R, at = L.rBase - r - 1;
-    const feet = [90, 210, 330].map((a) => cylinder(k, at * Math.cos((a * Math.PI) / 180), at * Math.sin((a * Math.PI) / 180), 0, L.lift + 0.01, r));
+    const feet = [30, 150, 270].map((a) => cylinder(k, at * Math.cos((a * Math.PI) / 180), at * Math.sin((a * Math.PI) / 180), 0, L.lift + 0.01, r));
     base = base.add(k.Manifold.union(feet));
+  }
+  if (socketUp(p)) {
+    const under = L.lift - 1, top = L.lift + NUT_DEPTH;
+    return base.subtract(k.Manifold.union([
+      groove,
+      cylinder(k, 0, 0, under, L.baseTop - under + 1, NIPPLE_HOLE / 2),
+      cylinder(k, 0, 0, under, top - under, NUT_R),
+      box(k, [-CHANNEL_W / 2, 0, under], [CHANNEL_W / 2, L.rBase + 1, top - 1]),
+    ]));
   }
   if (baseSocket(p)) {
     return base.subtract(k.Manifold.union([groove, ...socketDrumCuts(k, L.baseTop, L.opening - L.gap, L.hole, L.rBase, L.lift)]));
@@ -156,10 +181,10 @@ export const sphereShape: ShapeDefinition = {
   groups: sphereGroups,
   presets: [
     { id: 'replacement', values: { sphereDiameter: 200, sphereHeight: 185, mount: 'standalone' } },
-    { id: 'globeSmall', values: { sphereDiameter: 160, sphereHeight: 146, mount: 'base' } },
-    { id: 'globeLarge', values: { sphereDiameter: 250, sphereHeight: 236, mount: 'base' } },
-    // like an IKEA FADO: an E27 socket clamped in the base, small feet, the cable out underneath
-    { id: 'fado', values: { sphereDiameter: 200, sphereHeight: 185, mount: 'base', tableLamp: 'socket', socket: 'e27', baseFeet: true } },
+    { id: 'globeSmall', values: { sphereDiameter: 160, sphereHeight: 146, mount: 'base', tableLamp: 'puck', baseFeet: false } },
+    { id: 'globeLarge', values: { sphereDiameter: 250, sphereHeight: 236, mount: 'base', tableLamp: 'puck', baseFeet: false } },
+    // a low plate on small feet, the E27 socket standing in the ball, the cable out underneath
+    { id: 'globeLow', values: { sphereDiameter: 200, sphereHeight: 185, mount: 'base', tableLamp: 'socket', socket: 'e27', socketInside: true, baseFeet: true } },
   ],
   validate: (p) => sphereLayout(p).warnings,
   async prepare(p) {
@@ -191,7 +216,9 @@ export const sphereShape: ShapeDefinition = {
     // exploded: the ball lifts straight up until its bottom clears the lamp under it (the bulb on
     // its socket, or the puck light), which stays where it is
     const [, bulbLen] = BULB;
-    const lampTop = basePuck(p) ? L.baseTop + 30 + 20 : Math.max((onBase(p) ? L.baseTop : 0) + 35, centre - bulbLen / 2) + bulbLen;
+    const z0 = onBase(p) ? L.baseTop : 0;
+    const zBulb = socketUp(p) ? z0 + num(p, 'socketHeight') : Math.max(z0 + 35, centre - bulbLen / 2);
+    const lampTop = basePuck(p) ? L.baseTop + PUCK_H + 20 : zBulb + bulbLen;
     const lift: [number, number, number] = [0, 0, Math.max(80, lampTop + 20 - L.cutZ)];
     // a second photo on the back half: its own slot, made into the same relief
     const backPhoto = L.projection === 'front' && bool(p, 'backPhoto');
@@ -213,10 +240,8 @@ export const sphereShape: ShapeDefinition = {
       parts.push(puckLamp(k, p, 0, L.baseTop));
     } else {
       const [bd, bl] = BULB;
-      const z0 = onBase(p) ? L.baseTop : 0;
-      const zBulb = Math.max(z0 + 35, centre - bl / 2);
-      const lamp = cylinder(k, 0, 0, z0, zBulb - z0, 18).add(cylinder(k, 0, 0, zBulb, bl, bd * 0.3, bd / 2));
-      parts.push({ id: 'lamp', mesh: toMeshData(lamp), color: COLORS.lamp, explode: [0, 0, 0], printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, Math.min(centre, zBulb + bl * 0.6)] });
+      const lamp = cylinder(k, 0, 0, z0, zBulb - z0, 18).add(bulbShape(k, zBulb, BULB));
+      parts.push({ id: 'lamp', mesh: toMeshData(lamp), color: COLORS.lamp, explode: [0, 0, 0], printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, Math.min(centre, zBulb + bl - bd / 2)] });
     }
 
     const P = L.power;

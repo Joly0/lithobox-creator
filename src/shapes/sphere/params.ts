@@ -9,7 +9,10 @@ export const standalone = (p: ParamValues) => p.mount === 'standalone';
 export const onBase = (p: ParamValues) => p.mount === 'base';
 export const basePuck = (p: ParamValues) => onBase(p) && p.tableLamp === 'puck';
 export const baseSocket = (p: ParamValues) => onBase(p) && p.tableLamp === 'socket';
-/** Small feet under the base (as an IKEA FADO's): not with a battery tray, which sits there. */
+/** The socket standing on a low plate inside the ball (on an M10x1 threaded tube), or hanging under the plate in a drum. */
+export const socketUp = (p: ParamValues) => baseSocket(p) && p.socketInside === true;
+const socketDown = (p: ParamValues) => baseSocket(p) && p.socketInside !== true;
+/** Small feet under the base: not with a battery tray, which sits there. */
 export const feetOn = (p: ParamValues) => onBase(p) && p.baseFeet === true && !(basePuck(p) && p.powerBase === true);
 
 const litho = boxGroups.find((g) => g.id === 'litho')!;
@@ -43,9 +46,11 @@ export const sphereGroups: ParamGroup[] = [
       { key: 'cableHole', type: 'bool', default: true, visibleIf: standalone },
       { key: 'tableLamp', type: 'select', default: 'puck', options: ['puck', 'socket'], visibleIf: onBase },
       { key: 'socket', type: 'select', default: 'e27', options: ['e27', 'e14'], visibleIf: baseSocket },
-      { key: 'socketHoleE27', type: 'number', default: 41, min: 30, max: 50, step: 0.1, unit: 'mm', advanced: true, visibleIf: (p) => baseSocket(p) && p.socket === 'e27' },
-      { key: 'socketHoleE14', type: 'number', default: 29, min: 20, max: 40, step: 0.1, unit: 'mm', advanced: true, visibleIf: (p) => baseSocket(p) && p.socket === 'e14' },
-      { key: 'socketRoom', type: 'number', default: 45, min: 20, max: 100, step: 1, unit: 'mm', advanced: true, visibleIf: baseSocket },
+      { key: 'socketInside', type: 'bool', default: false, visibleIf: baseSocket },
+      { key: 'socketHoleE27', type: 'number', default: 41, min: 30, max: 50, step: 0.1, unit: 'mm', advanced: true, visibleIf: (p) => socketDown(p) && p.socket === 'e27' },
+      { key: 'socketHoleE14', type: 'number', default: 29, min: 20, max: 40, step: 0.1, unit: 'mm', advanced: true, visibleIf: (p) => socketDown(p) && p.socket === 'e14' },
+      { key: 'socketRoom', type: 'number', default: 45, min: 20, max: 100, step: 1, unit: 'mm', advanced: true, visibleIf: socketDown },
+      { key: 'socketHeight', type: 'number', default: 50, min: 25, max: 100, step: 1, unit: 'mm', advanced: true, visibleIf: socketUp },
     ],
   },
   {

@@ -75,6 +75,19 @@ export interface MeshData {
   local?: Float32Array;
 }
 
+/**
+ * What the 3D view draws of a relief part (see ui/reliefview.ts): its vertex normals, place in
+ * the picture and thickness, in pieces that each fit one GPU buffer. Worked out in the build
+ * worker, so the page does not stall on millions of triangles.
+ */
+export interface ReliefView {
+  pieces: { indices: Uint32Array; position: Float32Array; normal: Float32Array; plocal: Float32Array; thick: Float32Array }[];
+  /** Thickness range of the relief grid, and the mesh's size across (x, y). */
+  minT: number;
+  maxT: number;
+  size: [number, number];
+}
+
 export interface PartOutput {
   id: string;
   mesh: MeshData;
@@ -107,6 +120,8 @@ export interface PartOutput {
   light?: Vec3;
   /** Smooth relief surface: no outlines, plain vertex normals (lithophanes). */
   relief?: boolean;
+  /** For relief parts: what the 3D view draws (filled in by the build worker). */
+  view?: ReliefView;
   /** For relief parts: the first cols × rows vertices form the relief grid (row-major). */
   reliefGrid?: [number, number];
   /** For relief parts that wrap round a cylinder (axis along mesh y): the back's radius. */

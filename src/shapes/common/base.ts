@@ -59,9 +59,23 @@ export function cableSlot(p: ParamValues, limit: number, warnings: Message[]): C
  * The puck light in its seat, as a see-through preview part: centred at y = `cy`, standing in
  * the seat cut into the base top. `mesh` is for shapes that move their meshes (the arc).
  */
+/**
+ * A bulb for the preview, `[diameter, length]`, its cap at z and pointing up (or hanging down):
+ * the screw cap, a neck widening to the glass, the glass a ball of the bulb's diameter at the end.
+ */
+export function bulbShape(k: Kernel, z: number, [d, len]: readonly [number, number], down = false): Manifold {
+  const cap = len * 0.25, rc = d * 0.23, r = d / 2;
+  const up = cylinder(k, 0, 0, 0, cap, rc).add(cylinder(k, 0, 0, cap - 0.01, len - r - cap, rc, r * 0.9)).add(k.Manifold.sphere(r, 48).translate([0, 0, len - r]));
+  return (down ? up.scale([1, 1, -1]) : up).translate([0, 0, z]);
+}
+
+/** Height of the puck light in the preview. */
+export const PUCK_H = 19;
+
 export function puckLamp(k: Kernel, p: ParamValues, cy: number, baseTop: number, mesh: (m: Manifold) => MeshData = toMeshData): PartOutput {
-  const r = num(p, 'lampDiameter') / 2 - 2;
-  const lamp = cylinder(k, 0, cy, baseTop - num(p, 'lampSeatDepth'), 30, r * 0.85, r);
+  // a flat puck with a bevelled top edge, PUCK_H tall: not a taller lamp body
+  const r = num(p, 'lampDiameter') / 2 - 2, z = baseTop - num(p, 'lampSeatDepth');
+  const lamp = cylinder(k, 0, cy, z, PUCK_H - 4, r).add(cylinder(k, 0, cy, z + PUCK_H - 4.01, 4.01, r, r - 4));
   return { id: 'lamp', mesh: mesh(lamp), color: '#8fb7ff', explode: [0, 0, 20], printRotation: [0, 0, 0], preview: true, ghost: true };
 }
 

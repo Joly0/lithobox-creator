@@ -12,7 +12,7 @@ import { bool, num, round, type ShapeDefinition, str } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
 import { box, cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
-import { annulus, applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, lampCuts, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
+import { annulus, applyFrontText, bulbShape, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, lampCuts, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
 import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
 import { cone, foot, footTop, pendant, shadeGroups, table, tablePuck, tableSocket } from './params';
 
@@ -292,16 +292,16 @@ export const shadeShape: ShapeDefinition = {
     // the preview lamp: a bulb under the hub, on the drum's plate, or a puck in its seat
     if (pendant(p)) {
       const z = L.top - LIP_T - RING_H;
-      const bulb = cylinder(k, 0, 0, z - bl, bl, bd * 0.3, bd / 2).add(cylinder(k, 0, 0, z, 35, L.hole / 2 - 1));
-      parts.push({ id: 'lamp', mesh: toMeshData(bulb), color: COLORS.lamp, explode: lift, printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, z - bl * 0.6] });
+      const bulb = bulbShape(k, z, [bd, bl], true).add(cylinder(k, 0, 0, z, 35, L.hole / 2 - 1));
+      parts.push({ id: 'lamp', mesh: toMeshData(bulb), color: COLORS.lamp, explode: lift, printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, z - bl + bd / 2] });
     } else if (foot(p)) {
       // the bulb on the foot's socket, which stands under the spider's plate
       const z = L.bottom + num(p, 'ringHeight');
-      const bulb = cylinder(k, 0, 0, z, bl, bd * 0.3, bd / 2).add(cylinder(k, 0, 0, z - 35, 35, L.hole / 2 - 1));
-      parts.push({ id: 'lamp', mesh: toMeshData(bulb), color: COLORS.lamp, explode: [0, 0, 0], printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, z + bl * 0.6] });
+      const bulb = bulbShape(k, z, [bd, bl]).add(cylinder(k, 0, 0, z - 35, 35, L.hole / 2 - 1));
+      parts.push({ id: 'lamp', mesh: toMeshData(bulb), color: COLORS.lamp, explode: [0, 0, 0], printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, z + bl - bd / 2] });
     } else if (tableSocket(p)) {
-      const bulb = cylinder(k, 0, 0, L.baseTop, bl, bd / 2, bd * 0.3);
-      parts.push({ id: 'lamp', mesh: toMeshData(bulb), color: COLORS.lamp, explode: [0, 0, 20], printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, L.baseTop + bl * 0.6] });
+      const bulb = bulbShape(k, L.baseTop, [bd, bl]);
+      parts.push({ id: 'lamp', mesh: toMeshData(bulb), color: COLORS.lamp, explode: [0, 0, 20], printRotation: [0, 0, 0], preview: true, ghost: true, light: [0, 0, L.baseTop + bl - bd / 2] });
     } else {
       parts.push(puckLamp(k, p, 0, L.baseTop));
     }

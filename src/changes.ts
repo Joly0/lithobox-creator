@@ -12,6 +12,39 @@ export interface ChangeDay {
 
 export const CHANGES: ChangeDay[] = [
   {
+    date: '2026-10-27',
+    items: [
+      {
+        en: 'Ball lamp: the E27 socket can stand inside the ball on a low plate (on an M10x1 threaded tube) instead of hanging in a tall base; the 20 cm globe preset now uses it.',
+        de: 'Kugellampe: Die E27-Fassung kann auf einer flachen Platte in der Kugel stehen (auf einem Gewinderöhrchen M10x1), statt in einem hohen Sockel zu hängen; die Vorlage mit der 20-cm-Kugel nutzt das jetzt.',
+        es: 'Lámpara de bola: el casquillo E27 puede ir de pie dentro de la bola sobre una placa baja (en un tubo roscado M10x1) en vez de colgar en una base alta; el ajuste del globo de 20 cm ya lo usa.',
+        fr: "Lampe boule : la douille E27 peut se tenir dans la boule sur une plaque basse (sur un tube fileté M10x1) au lieu de pendre dans un socle haut ; le préréglage du globe de 20 cm l'utilise désormais.",
+        it: 'Lampada a sfera: il portalampada E27 può stare dentro la sfera su una piastra bassa (su un tubo filettato M10x1) invece di pendere in una base alta; il preset del globo da 20 cm ora lo usa.',
+      },
+      {
+        en: "Ball lamp: the back foot no longer sits in the cable's notch, where it printed loose from the base.",
+        de: 'Kugellampe: Der hintere Fuß sitzt nicht mehr in der Kabelaussparung, wo er lose vom Sockel gedruckt wurde.',
+        es: 'Lámpara de bola: la pata trasera ya no queda en la muesca del cable, donde se imprimía suelta de la base.',
+        fr: "Lampe boule : le pied arrière n'est plus dans l'encoche du câble, où il s'imprimait détaché du socle.",
+        it: "Lampada a sfera: il piedino posteriore non sta più nell'incavo del cavo, dove veniva stampato staccato dalla base.",
+      },
+      {
+        en: 'Large lithophanes (such as a 25 cm ball) no longer vanish from the 3D view and the print view once their detail has loaded, and the page stalls less while a big one loads.',
+        de: 'Große Lithophanien (etwa eine 25-cm-Kugel) verschwinden nicht mehr aus der 3D-Ansicht und der Druckansicht, sobald ihre Details geladen sind, und die Seite hakt beim Laden großer Lithophanien weniger.',
+        es: 'Las litofanías grandes (como una bola de 25 cm) ya no desaparecen de la vista 3D ni de la vista de impresión cuando se carga su detalle, y la página se traba menos mientras carga una grande.',
+        fr: "Les grandes lithophanies (comme une boule de 25 cm) ne disparaissent plus de la vue 3D ni de la vue d'impression une fois leurs détails chargés, et la page se fige moins pendant le chargement d'une grande.",
+        it: "Le litofanie grandi (come una sfera da 25 cm) non scompaiono più dalla vista 3D e dalla vista di stampa quando il dettaglio è caricato, e la pagina si blocca meno mentre ne carica una grande.",
+      },
+      {
+        en: 'Ball lamp: the globe presets with a puck light no longer keep the socket and feet of the preset picked before, and the preview shows a flat puck light and round bulbs (ball lamp and table shade).',
+        de: 'Kugellampe: Die Globus-Vorlagen mit Puck-Leuchte behalten nicht mehr Fassung und Füße der zuvor gewählten Vorlage, und die Vorschau zeigt eine flache Puck-Leuchte und runde Glühbirnen (Kugellampe und Lampenschirm).',
+        es: 'Lámpara de bola: los ajustes de globo con lámpara de disco ya no conservan el casquillo y las patas del ajuste elegido antes, y la vista previa muestra una lámpara de disco plana y bombillas redondas (lámpara de bola y pantalla).',
+        fr: "Lampe boule : les préréglages de globe avec lampe palet ne gardent plus la douille et les pieds du préréglage choisi avant, et l'aperçu montre une lampe palet plate et des ampoules rondes (lampe boule et abat-jour).",
+        it: "Lampada a sfera: i preset del globo con lampada a disco non mantengono più il portalampada e i piedini del preset scelto prima, e l'anteprima mostra una lampada a disco piatta e lampadine rotonde (lampada a sfera e paralume).",
+      },
+    ],
+  },
+  {
     date: '2026-10-26',
     items: [
       {
@@ -22,11 +55,11 @@ export const CHANGES: ChangeDay[] = [
         it: "Le pinne di supporto delle litofanie in piedi ora si staccano in modo pulito. Funziona solo con il 3MF per Bambu Studio / Orca: in STL e 3MF semplice restano fuse con l'immagine.",
       },
       {
-        en: 'Ball lamp: three small feet under the base, and a FADO-style preset (Ø 20 cm, E27 socket).',
-        de: 'Kugellampe: drei kleine Füße unter dem Sockel und eine Vorlage im Stil der FADO (Ø 20 cm, E27-Fassung).',
-        es: 'Lámpara de bola: tres patas pequeñas bajo la base y un ajuste estilo FADO (Ø 20 cm, casquillo E27).',
-        fr: 'Lampe boule : trois petits pieds sous le socle et un préréglage style FADO (Ø 20 cm, douille E27).',
-        it: 'Lampada a sfera: tre piccoli piedini sotto la base e un preset in stile FADO (Ø 20 cm, portalampada E27).',
+        en: 'Ball lamp: three small feet under the base, and a preset with an E27 socket on feet (Ø 20 cm).',
+        de: 'Kugellampe: drei kleine Füße unter dem Sockel und eine Vorlage mit E27-Fassung auf Füßen (Ø 20 cm).',
+        es: 'Lámpara de bola: tres patas pequeñas bajo la base y un ajuste con casquillo E27 sobre patas (Ø 20 cm).',
+        fr: 'Lampe boule : trois petits pieds sous le socle et un préréglage avec douille E27 sur pieds (Ø 20 cm).',
+        it: 'Lampada a sfera: tre piccoli piedini sotto la base e un preset con portalampada E27 su piedini (Ø 20 cm).',
       },
       {
         en: "The steel disc recess fits the measured disc, and the ball lamp's cable hole is round.",

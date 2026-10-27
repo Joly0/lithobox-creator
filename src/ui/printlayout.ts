@@ -65,7 +65,7 @@ export function printLayout(parts: PartOutput[], bed: [number, number] = [256, 2
   return {
     plates,
     parts: placed.map(({ src, rot, t }) => ({
-      id: src.id, mesh: src.mesh, color: src.color, explode: [0, 0, 0], printRotation: [0, 0, 0], relief: src.relief, reliefGrid: src.reliefGrid, mask: src.mask, wrapSphere: src.wrapSphere, sphereProjection: src.sphereProjection,
+      id: src.id, mesh: src.mesh, color: src.color, explode: [0, 0, 0], printRotation: [0, 0, 0], relief: src.relief, view: src.view, reliefGrid: src.reliefGrid, mask: src.mask, wrapSphere: src.wrapSphere, sphereProjection: src.sphereProjection,
       matrix: printMatrix(rot, t),
     })),
   };
