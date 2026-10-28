@@ -1,6 +1,7 @@
 import './style.css';
 import { linkFormat } from './core/format';
 import { allParams, defaultValues, matchingPreset, sanitize } from './core/shape';
+import { track } from './track';
 import type { BuildResult, ParamValues } from './core/types';
 import { loadProfile, profileFromFile, saveProfile, type StoredProfile } from './export/profile';
 import { PROJECT_EXT, ProjectError, readProject, writeProject } from './export/project';
@@ -198,7 +199,10 @@ function setShape(id: string, params?: Partial<ParamValues>): void {
   reframe = true;
   rebuild();
 }
-shapeSel.addEventListener('change', () => setShape(shapeSel.value));
+shapeSel.addEventListener('change', () => {
+  setShape(shapeSel.value);
+  track('shape', { shape: shape.id });
+});
 
 // ------------------------------------------------------------ presets
 const presetSel = $<HTMLSelectElement>('preset');
@@ -257,6 +261,7 @@ presetSel.addEventListener('change', () => {
   setPicked(pr.id);
   syncPreset();
   rebuild();
+  track('preset', { shape: shape.id, preset: pr.id });
 });
 
 $<HTMLInputElement>('advanced').addEventListener('change', (e) => panels.forEach((p) => p.setAdvanced((e.target as HTMLInputElement).checked)));
@@ -502,6 +507,10 @@ const downloadStl = wireExports(
   },
   { bambu: $('export3mf'), plain: $('exportPlain'), stl: $('exportStl') },
 );
+// shortcut: counts the click, also in the rare case the build fails and nothing downloads
+for (const [format, id] of [['3mf', 'export3mf'], ['plain3mf', 'exportPlain'], ['stl', 'exportStl']]) {
+  $(id).addEventListener('click', () => track('export', { format, shape: shape.id, preset: matchingPreset(shape, values)?.id ?? 'custom' }));
+}
 
 // ------------------------------------------------------------ phone layout
 // "More" opens the other downloads, the info and the parts above the bottom bar.

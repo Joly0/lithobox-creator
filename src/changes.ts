@@ -12,6 +12,18 @@ export interface ChangeDay {
 
 export const CHANGES: ChangeDay[] = [
   {
+    date: '2026-10-28',
+    items: [
+      {
+        en: 'The page now counts anonymous usage (visits, chosen shapes, presets and download formats) on its own server, without cookies. Photos and settings are never sent.',
+        de: 'Die Seite zählt jetzt anonym die Nutzung (Besuche, gewählte Formen, Vorlagen und Download-Formate) auf eigenem Server, ohne Cookies. Fotos und Einstellungen werden nie gesendet.',
+        es: 'La página ahora cuenta el uso de forma anónima (visitas, formas elegidas, ajustes y formatos de descarga) en su propio servidor, sin cookies. Las fotos y los ajustes nunca se envían.',
+        fr: "La page compte désormais l'utilisation de façon anonyme (visites, formes choisies, préréglages et formats de téléchargement) sur son propre serveur, sans cookies. Les photos et les réglages ne sont jamais envoyés.",
+        it: "La pagina ora conta l'utilizzo in forma anonima (visite, forme scelte, preset e formati di download) sul proprio server, senza cookie. Foto e impostazioni non vengono mai inviate.",
+      },
+    ],
+  },
+  {
     date: '2026-10-27',
     items: [
       {

@@ -39,7 +39,9 @@ small ornament to a 21 cm box.
 - Five languages: English, German, French, Spanish, Italian.
 
 Everything runs locally in the browser: no server, no upload, photos never
-leave the device.
+leave the device. The live site counts anonymous usage (visits, chosen shapes,
+presets and download formats) with a self-hosted Umami: no cookies, no photos,
+no settings.
 
 ## Development
 
