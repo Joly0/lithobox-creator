@@ -5,7 +5,7 @@ Pick one of nine shapes, add photos from your device, set the sizes and
 closures, and export print ready STL or 3MF files. Any size works, from a
 small ornament to a 21 cm box.
 
-**Live version:** https://joly0.github.io/lithobox-creator/
+**Live version:** https://lithobox.app
 
 ## Shapes
 

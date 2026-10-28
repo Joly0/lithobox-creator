@@ -172,6 +172,7 @@ body.busy .status::before { content: ''; width: 8px; height: 8px; border-radius:
 .part { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 3px 10px; cursor: pointer; font-size: 12px; }
 .sw { width: 10px; height: 10px; border-radius: 50%; }
 .btn { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 550; }
+a.btn { color: var(--fg); text-decoration: none; }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .link { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; }
 
