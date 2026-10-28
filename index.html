@@ -3,13 +3,46 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Design your own lithophane light box in the browser and download it as STL or 3MF." />
+    <meta name="description" content="Free lithophane generator in the browser: turn your photos into a 3D printable light box, lamp, ball lamp, lampshade or ornament and download STL or 3MF. Nothing is uploaded." />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='5' y='5' width='22' height='22' rx='3' fill='%23e9a23b'/><rect x='9' y='9' width='14' height='14' fill='%23fff3d6'/></svg>" />
-    <title>Lithobox Creator</title>
+    <!-- Search and link previews. The app swaps the title for app.pageTitle in the visitor's language. -->
+    <title>Lithobox Creator: lithophane light box &amp; lamp generator (STL/3MF)</title>
+    <link rel="canonical" href="https://lithobox.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://lithobox.app/" />
+    <meta property="og:site_name" content="Lithobox Creator" />
+    <meta property="og:title" content="Lithobox Creator: lithophane light box &amp; lamp generator" />
+    <meta property="og:description" content="Turn your photos into a 3D printable lithophane light box, lamp or ornament, right in the browser. Free, download STL or 3MF." />
+    <meta name="twitter:card" content="summary" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Lithobox Creator",
+        "url": "https://lithobox.app/",
+        "description": "Free browser tool that turns photos into 3D printable lithophane light boxes, lamps, ball lamps, lampshades and ornaments, exported as STL or 3MF.",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Any (web browser)",
+        "browserRequirements": "Requires JavaScript and WebGL",
+        "inLanguage": ["en", "de", "fr", "es", "it"],
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+        "codeRepository": "https://github.com/Joly0/lithobox-creator"
+      }
+    </script>
     <!-- Anonymous usage counts (self-hosted Umami, no cookies). The hash holds the design, so it is left out. -->
     <script defer src="https://api.lithobox.app/lb.js" data-website-id="5b6ba8ba-2400-4ce2-933d-cbf4b38eb0ec" data-domains="lithobox.app" data-exclude-hash="true"></script>
   </head>
   <body>
+    <!-- What the page is, for visitors and crawlers that do not run JavaScript. -->
+    <noscript>
+      <h1>Lithobox Creator: lithophane light box and lamp generator</h1>
+      <p>Lithobox Creator turns your photos into lithophanes you can 3D print: thin reliefs that show the picture when light shines through. Design a light box, lamp or ornament in the browser and download it as STL or 3MF for Bambu Studio, OrcaSlicer or any slicer. It is free, open source, and your photos never leave your device.</p>
+      <p>Shapes: box with up to five pictures, flat picture frame or light box, cylinder lamp, arc, polygon lamp, lampshade, ball lamp, ornament (circle, star, hexagon, heart) and heart.</p>
+      <p>Features: crop and tone each photo, lamp preview, colour lithophanes (cyan, magenta and yellow layers), lid closures, lamp sockets, battery trays, project files and share links. Available in English, German, French, Spanish and Italian.</p>
+      <p>This tool needs JavaScript and WebGL. Please enable JavaScript to use it.</p>
+    </noscript>
     <header class="top">
       <div class="brand"><span class="logo"></span><span data-i18n="app.title"></span><button type="button" id="version" class="version"></button></div>
       <div class="top-actions">

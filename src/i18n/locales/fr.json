@@ -1,5 +1,6 @@
 {
   "app.title": "Lithobox Creator",
+  "app.pageTitle": "Lithobox Creator : générateur de boîtes lumineuses & lampes lithophanie (STL/3MF)",
   "changes.title": "Nouveautés",
   "changes.close": "Fermer",
   "changes.version": "Version {commit}, {date}",

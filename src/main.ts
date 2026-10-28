@@ -675,7 +675,7 @@ langSel.addEventListener('change', () => {
 });
 
 function translateStatic(): void {
-  document.title = t('app.title');
+  document.title = t('app.pageTitle');
   document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => (el.textContent = t(el.dataset.i18n!)));
   langSel.value = document.documentElement.lang;
   $('saveProject').title = t('project.saveHint');
