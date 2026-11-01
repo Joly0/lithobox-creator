@@ -159,7 +159,7 @@ export const cylinderShape: ShapeDefinition = {
     }
 
     const zc = (L.panelBottom + L.panelTop) / 2;
-    const slot: PanelSlot = { id: 'round', width: L.width, height: L.height, thickness: L.thick, matrix: roundSlotMatrix(zc), wrap: { radius: L.rIn } };
+    const slot: PanelSlot = { id: 'round', width: L.width, height: L.height, thickness: L.thick, matrix: roundSlotMatrix(zc), wrap: { radius: L.rIn }, pictures: num(p, 'pictureCount') };
     const tube = annulus(k, L.rIn, L.rOut, L.panelBottom, L.panelTop);
     parts.push({ id: 'panel-round', mesh: toMeshData(tube), color: COLORS.panel, explode: [0, 0, 60], printRotation: [0, 0, 0], preview: true, ghost: true });
     if (withBase(p)) {

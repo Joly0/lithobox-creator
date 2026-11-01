@@ -11,7 +11,7 @@ import { getShape, shapes } from './shapes';
 import { ParamPanel } from './ui/panel';
 import { PicturesPanel } from './ui/pictures';
 import { loadLastShape, loadSettings, saveSettings } from './ui/storage';
-import { colourPicture, inColour, pictureArea, PREVIEW_RES, QUALITY_RES, thinnest } from './litho/build';
+import { colourPicture, inColour, photoSlots, pictureArea, PREVIEW_RES, QUALITY_RES, stitchRound, thinnest } from './litho/build';
 import { sampleLuminance, sampleSize } from './litho/image';
 import { triangleEstimate, type Luminance } from './litho/mesh';
 import { browserFamily } from './ui/browser';
@@ -101,7 +101,7 @@ const client = new GeometryClient(
     if (printView) void showPrintView();
     else viewer.setParts(r.parts);
     updateLampMaps();
-    pictures.setSlots(r.slots.map((s) => ({ id: s.id, ...pictureArea(s, values), outline: s.outline, margin: values.lithoMargin as number })));
+    pictures.setSlots(photoSlots(r.slots, values).map((s) => ({ id: s.id, width: s.width, height: s.height, outline: s.slot.outline, margin: values.lithoMargin as number })));
     applyGhosts();
     hasReliefs = r.parts.some((p) => p.relief);
     document.body.classList.toggle('has-pictures', hasReliefs);
@@ -379,10 +379,9 @@ const gridCache = new Map<string, { key: string; lum: Luminance }>();
 /** Grayscale grids of all pictures at a resolution, cropped to their slot's picture area. */
 function pictureGrids(resolution: number): Record<string, Luminance> {
   const out: Record<string, Luminance> = {};
-  for (const [id, pic] of pictures.placements) {
-    const slot = last?.slots.find((s) => s.id === id);
-    if (!slot) continue;
-    const area = pictureArea(slot, values);
+  for (const { id, slot, ...area } of photoSlots(last?.slots ?? [], values)) {
+    const pic = pictures.placements.get(id);
+    if (!pic) continue;
     const { cols, rows } = sampleSize(area.width, area.height, resolution);
     const colour = inColour(slot, values);
     const key = `${pic.photo.id}:${pic.version}:${cols}x${rows}:${colour}`;
@@ -392,6 +391,14 @@ function pictureGrids(resolution: number): Record<string, Luminance> {
       out[id] = sampleLuminance(pic, cols, rows, resolution, colour);
       gridCache.set(`${id}@${resolution}`, { key, lum: out[id] });
     }
+  }
+  // several photos round one wrap make one picture
+  for (const s of last?.slots ?? []) {
+    const ids = Array.from({ length: s.pictures ?? 0 }, (_, i) => `${s.id}${i + 1}`);
+    if (ids.length < 2) continue;
+    const strips = ids.map((id) => out[id]);
+    for (const id of ids) delete out[id];
+    if (strips.some((g) => g)) out[s.id] = stitchRound(strips);
   }
   return out;
 }
@@ -438,8 +445,8 @@ function renderInfo(r: BuildResult): void {
   }
   // lithophanes make big files: say how big before the download
   if (pictures.placements.size) {
-    // the reliefs: slots with a photo, or whose second photo (a ball's back) has one
-    const reliefs = r.slots.filter((s) => !s.pictureOf && (pictures.placements.has(s.id) || r.slots.some((b) => b.pictureOf === s.id && pictures.placements.has(b.id))));
+    // the reliefs: slots with a photo, or whose second photo (a ball's back) or a strip of it has one
+    const reliefs = r.slots.filter((s) => !s.pictureOf && photoSlots([s, ...r.slots.filter((b) => b.pictureOf === s.id)], values).some((b) => pictures.placements.has(b.id)));
     const res = QUALITY_RES[String(values.lithoQuality)] ?? QUALITY_RES.normal;
     let tris = 0;
     for (const s of reliefs)

@@ -283,6 +283,7 @@ export const shadeShape: ShapeDefinition = {
       thickness: L.thick,
       matrix,
       wrap: { radius: rMid, slope: L.slope },
+      pictures: num(p, 'pictureCount'),
       upsideDown: hangs,
       explode: shadeOut,
     };

@@ -19,6 +19,7 @@ export const cylinderGroups: ParamGroup[] = [
       { key: 'cylDiameter', type: 'number', default: 100, min: 50, max: 250, step: 0.5, unit: 'mm' },
       { key: 'panelHeight', type: 'number', default: 130, min: 40, max: 300, step: 0.5, unit: 'mm' },
       { key: 'panelThickness', type: 'number', default: 3.2, min: 1, max: 8, step: 0.1, unit: 'mm' },
+      { key: 'pictureCount', type: 'number', default: 1, min: 1, max: 4, step: 1 },
     ],
   },
   // play between the parts this shape has

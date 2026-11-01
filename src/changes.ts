@@ -12,6 +12,18 @@ export interface ChangeDay {
 
 export const CHANGES: ChangeDay[] = [
   {
+    date: '2026-11-01',
+    items: [
+      {
+        en: 'Cylinder lamp and lampshade: up to four photos side by side all the way round, set with "Pictures around". It still prints as one piece.',
+        de: 'Zylinderlampe und Lampenschirm: bis zu vier Fotos nebeneinander rundherum, einstellbar mit „Bilder rundum“. Gedruckt wird weiterhin ein Teil.',
+        es: 'Lámpara cilíndrica y pantalla de lámpara: hasta cuatro fotos una junto a otra alrededor, con «Imágenes alrededor». Se sigue imprimiendo en una sola pieza.',
+        fr: "Lampe cylindrique et abat-jour : jusqu'à quatre photos côte à côte tout autour, avec « Images autour ». L'impression reste en une seule pièce.",
+        it: 'Lampada cilindrica e paralume: fino a quattro foto affiancate tutto intorno, con «Immagini intorno». Si stampa sempre in un unico pezzo.',
+      },
+    ],
+  },
+  {
     date: '2026-10-28',
     items: [
       {

@@ -165,6 +165,11 @@ export interface PanelSlot {
    * (a ball's second photo on its back half).
    */
   pictureOf?: string;
+  /**
+   * A wrap all the way round made of this many photos side by side, each in a slot of its own
+   * (`<id>1`, `<id>2`, ...), the first centred on the front. One relief, one print.
+   */
+  pictures?: number;
 }
 
 /**

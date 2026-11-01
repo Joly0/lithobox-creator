@@ -21,6 +21,32 @@ export function pictureArea(slot: { width: number; height: number; wrap?: { open
   return { width: Math.max(1, slot.width - 2 * mx), height: Math.max(1, slot.height - 2 * m) };
 }
 
+/** Where photos go: a slot each, or for a wrap of several pictures a strip of it each (`round1`, ...). */
+export function photoSlots(slots: PanelSlot[], p: ParamValues): { id: string; slot: PanelSlot; width: number; height: number }[] {
+  return slots.flatMap((slot) => {
+    const a = pictureArea(slot, p), n = slot.pictures ?? 1;
+    if (n < 2) return [{ id: slot.id, slot, ...a }];
+    return Array.from({ length: n }, (_, i) => ({ id: `${slot.id}${i + 1}`, slot, width: a.width / n, height: a.height }));
+  });
+}
+
+/**
+ * Same-size strips side by side all the way round, the first centred on the front (u = 0.5,
+ * see heightMap), the rest following on to the right; a missing one is white.
+ */
+export function stitchRound(strips: (Luminance | undefined)[]): Luminance {
+  const { cols: c, rows } = strips.find((s) => s)!;
+  const n = strips.length, cols = c * n;
+  const shift = Math.round((c * (n - 1)) / 2);
+  const data = new Float32Array(cols * rows);
+  // shortcut: grayscale only, the round shapes have no colour pictures; carry rgb when one does
+  strips.forEach((s, k) => {
+    for (let y = 0; y < rows; y++)
+      for (let x = 0; x < c; x++) data[y * cols + ((k * c + x + shift) % cols)] = s ? s.data[y * c + x] : 1;
+  });
+  return { cols, rows, data };
+}
+
 /** The lamp view's numbers for a ball: projection, the band's latitudes, a front picture's half width. */
 function sphereProjection(rm: number, s: { band: [number, number]; sMid: number; projection?: 'band' | 'conformal' | 'front'; half?: number; blend?: number; around?: number }) {
   return { projection: s.projection ?? 'band', lat: [(s.band[0] + s.sMid) / rm, (s.band[1] + s.sMid) / rm] as [number, number], half: s.half ?? 0, blend: s.blend ?? 0, around: s.around ?? 2 * Math.PI };

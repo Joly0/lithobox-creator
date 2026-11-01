@@ -29,6 +29,7 @@ export const shadeGroups: ParamGroup[] = [
       { key: 'bottomDiameter', type: 'number', default: 180, min: 50, max: 300, step: 0.5, unit: 'mm', visibleIf: cone },
       { key: 'panelHeight', type: 'number', default: 150, min: 40, max: 300, step: 0.5, unit: 'mm' },
       fromBox('panelThickness', () => true),
+      { key: 'pictureCount', type: 'number', default: 1, min: 1, max: 4, step: 1 },
     ],
   },
   // a shade stands on its own while it prints: no support fins

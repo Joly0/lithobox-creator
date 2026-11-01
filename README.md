@@ -13,10 +13,10 @@ small ornament to a 21 cm box.
   lamp seat, cable options, optional battery tray and base text.
 - **Flat picture:** light box, open stand, plain picture with a hanging loop,
   or a slim frame with a groove for an LED strip.
-- **Cylinder lamp:** one picture wrapped around a tube, optional top ring.
+- **Cylinder lamp:** one to four pictures wrapped around a tube, optional top ring.
 - **Arc:** one picture bent in a shallow curve.
 - **Polygon lamp:** 3, 5, 6 or 8 sides, same lid closures as the box.
-- **Lampshade:** cone or cylinder, hanging or standing.
+- **Lampshade:** cone or cylinder, hanging or standing, with one to four pictures around it.
 - **Ball lamp:** a photo band around a ball, with an optional second photo on
   the back.
 - **Ornament:** small flat picture cut to a circle, star, hexagon or heart,
@@ -73,7 +73,9 @@ Write a module that exports a `ShapeDefinition` (`id`, parameter `groups`,
 `build()`), add it to `src/shapes/index.ts` and add its texts under
 `shape.<id>.*` in the locale files. `build()` returns the printable parts plus
 `slots`, the places where picture panels go: the lithophane builder fills each
-slot so the panels fit exactly.
+slot so the panels fit exactly. A slot with `pictures` takes that many photos
+side by side and joins them into one picture, so the part still prints as one
+piece.
 
 ## Deployment
 
