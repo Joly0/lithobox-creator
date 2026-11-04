@@ -13,7 +13,7 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { box, cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
 import { annulus, applyFrontText, bulbShape, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, lampCuts, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
-import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
+import { PILLAR, powerFit, POWER_LEDGE, POWER_LIMITS, POWER_WARNS, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
 import { cone, foot, footTop, pendant, shadeGroups, table, tablePuck, tableSocket } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', spider: '#e9a23b', litho: '#f4ead7', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -222,6 +222,12 @@ export const shadeShape: ShapeDefinition = {
     { id: 'cylinder', values: { shadeShape: 'cylinder', topDiameter: 160, panelHeight: 160, socket: 'e27' } },
   ],
   validate: (p) => shadeLayout(p).warnings,
+  limits: [
+    ...POWER_LIMITS,
+    { key: 'baseHeight', warns: ['warn.baseTooThin'] },
+    { key: 'bottomDiameter', warns: ['warn.lampTooBig', 'warn.shadeThick', ...POWER_WARNS] },
+    { key: 'topDiameter', warns: ['warn.lampTooBig', 'warn.shadeThick', ...POWER_WARNS] },
+  ],
   async prepare(p) {
     if (table(p) && str(p, 'baseText').trim()) await ensureFont(str(p, 'textFont'));
   },

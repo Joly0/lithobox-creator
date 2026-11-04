@@ -11,7 +11,7 @@ import { box, cylinder, toMeshData, type Kernel, type Manifold } from '../../geo
 import { ensureFont } from '../../geometry/text';
 import { applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, DRUM_WALL, bulbShape, lampCuts, PUCK_H, puckLamp, roundSlotMatrix, SOCKET_PLATE, socketDrumCuts } from '../common/base';
 import { spherePicture, type SphereProjection } from '../../litho/mesh';
-import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
+import { PILLAR, powerFit, POWER_LEDGE, POWER_LIMITS, POWER_WARNS, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
 import { basePuck, baseSocket, onBase, sphereGroups, socketUp, standalone, feetOn } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -187,6 +187,11 @@ export const sphereShape: ShapeDefinition = {
     { id: 'globeLow', values: { sphereDiameter: 200, sphereHeight: 185, mount: 'base', tableLamp: 'socket', socket: 'e27', socketInside: true, baseFeet: true } },
   ],
   validate: (p) => sphereLayout(p).warnings,
+  limits: [
+    ...POWER_LIMITS,
+    { key: 'baseHeight', warns: ['warn.baseTooThin'] },
+    { key: 'sphereDiameter', warns: ['warn.lampTooBig', ...POWER_WARNS] },
+  ],
   async prepare(p) {
     if (onBase(p) && str(p, 'baseText').trim()) await ensureFont(str(p, 'textFont'));
   },

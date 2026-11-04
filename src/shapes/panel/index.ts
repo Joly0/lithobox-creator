@@ -12,7 +12,7 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { box, prism, roundedRect, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
 import { applyFrontText, cableCuts, frontText, lampCuts, puckLamp, slotMatrix } from '../common/base';
-import { powerFit, POWER_WALL, powerTextZ, powerUnderside, pushPowerInfo, rectTray } from '../common/power';
+import { powerFit, POWER_LIMITS, POWER_WALL, POWER_WARNS, powerTextZ, powerUnderside, pushPowerInfo, rectTray } from '../common/power';
 import { applyLidJoint, jointGeometry, type JointGeometry } from '../common/lid';
 import { lightBox, lightFrame, lightStand, panelGroups } from './params';
 import { hangingLoop } from '../common/outlines';
@@ -72,6 +72,13 @@ export const panelShape: ShapeDefinition = {
     { id: 'portrait', values: { panelWidth: 120, panelHeight: 180 } },
   ],
   validate: (p) => (lightBox(p) ? panelLayout(p).warnings : lightStand(p) ? standLayout(p).warnings : []),
+  limits: [
+    ...POWER_LIMITS,
+    { key: 'postSize', warns: ['warn.magnetNoFit', 'warn.noRoom'] },
+    { key: 'baseHeight', warns: ['warn.baseTooThin', 'warn.noRoom'] },
+    { key: 'lightDepth', warns: ['warn.lampTooBig', ...POWER_WARNS], free: ['panelWidth'] },
+    { key: 'panelWidth', warns: ['warn.lampTooBig', ...POWER_WARNS], free: ['lightDepth'] },
+  ],
   async prepare(p) {
     if ((lightBox(p) || lightStand(p)) && str(p, 'baseText').trim()) await ensureFont(str(p, 'textFont'));
   },

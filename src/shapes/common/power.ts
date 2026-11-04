@@ -5,7 +5,7 @@
 //
 // A shape gives its outlines (the tray's outside, the pocket it stands in, the open inside),
 // the pillar centres, and where the tray's front and back are; the rest is shared.
-import { bool, num, round, str } from '../../core/shape';
+import { bool, type Limit, num, round, str } from '../../core/shape';
 import type { Message, ParamValues } from '../../core/types';
 import { box, cylinder, prism, roundedRect, squareFrustum, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
 import { magnetH, magnetR, pegHeight } from './lid';
@@ -15,6 +15,14 @@ export const POWER_WALL = 2.4; // wall of the power base around the shape
 export const powerFit = (p: ParamValues) => num(p, 'powerTrayClearance');
 export const POWER_LEDGE = 2.5; // ledge inside the power base rim that the shape rests on
 export const PILLAR = 12; // pillars the shape rests on
+
+/** Warnings about the tray's insides that a bigger shape clears. */
+export const POWER_WARNS = ['warn.bankTooBig', 'warn.switchBank', 'warn.switchNoFit', 'warn.ledNoFit'];
+/** The magnets never outgrow the pillars (the check in powerLayout), the tray grows to the switch and LED window. */
+export const POWER_LIMITS: Limit[] = [
+  { key: 'magnetDiameter', cap: (p) => (p.powerBase === true && p.powerJoint === 'magnets' ? PILLAR - 2 * 1.2 - 2 * num(p, 'magnetClearance') : Infinity) },
+  { key: 'powerHeight', warns: ['warn.switchNoFit', 'warn.ledNoFit'] },
+];
 
 
 export interface PowerLayout {

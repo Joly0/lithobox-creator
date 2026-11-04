@@ -10,7 +10,7 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { box, prism, toMeshData, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
 import { applyFrontText, cableCuts, cableSlot, type CableSlot, frontText, lampCuts, lidText, puckLamp, slotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
-import { buildPowerTray, PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
+import { buildPowerTray, PILLAR, powerFit, POWER_LIMITS, POWER_WARNS, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
 import { applyLidJoint, jointGeometry, type JointGeometry, jointLayout, type JointLayout, type LatchFace, type Socket } from '../common/lid';
 import { polygonGroups } from './params';
 
@@ -310,6 +310,13 @@ export const polygonShape: ShapeDefinition = {
     { id: 'lantern', values: { sides: '8', panelWidth: 70, panelHeight: 150 } },
   ],
   validate: (p) => polygonLayout(p).warnings,
+  limits: [
+    ...POWER_LIMITS,
+    { key: 'postSize', warns: ['warn.magnetNoFit', 'warn.noRoom'] },
+    { key: 'baseHeight', warns: ['warn.baseTooThin'] },
+    { key: 'lidThickness', warns: ['warn.lidTooThin'] },
+    { key: 'panelWidth', warns: ['warn.lampTooBig', ...POWER_WARNS] },
+  ],
   async prepare(p) {
     if (str(p, 'baseText').trim() || str(p, 'topText').trim()) await ensureFont(str(p, 'textFont'));
   },

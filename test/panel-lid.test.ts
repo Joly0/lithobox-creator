@@ -11,12 +11,9 @@ describe('light box hood closures', () => {
   for (const lidJoint of LID_JOINTS)
     it(`${lidJoint}: fits, closed, hood and base apart`, async () => {
       const k = await loadKernel();
-      let p = sanitize(panelShape, { ...defaultValues(panelShape), lighting: 'box', lidJoint });
-      if (lidJoint === 'latch') {
-        // a 10 mm arm reaches through the 10 mm base: it says so, and a shorter one fits
-        expect(panelLayout(p).warnings.map((w) => w.key)).toEqual(['warn.noRoom']);
-        p = sanitize(panelShape, { ...p, latchLength: 5 });
-      }
+      const p = sanitize(panelShape, { ...defaultValues(panelShape), lighting: 'box', lidJoint });
+      // a 10 mm arm would reach through the 10 mm base, so the base grows for it
+      if (lidJoint === 'latch') expect(p.baseHeight).toBeGreaterThan(10);
       expect(panelLayout(p).warnings.map((w) => w.key)).toEqual([]);
       expect(panelLayout(p).joint.magnetsFit).toBe(lidJoint === 'plugMagnet' || lidJoint === 'magnet');
       withScope(() => {

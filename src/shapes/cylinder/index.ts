@@ -9,7 +9,7 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { annulus, applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, lampCuts, lidText, puckLamp, ringText, roundSlotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
-import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
+import { PILLAR, powerFit, POWER_LEDGE, POWER_LIMITS, POWER_WARNS, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
 import { cylinderGroups, withBase } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', ring: '#e9a23b', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -124,6 +124,12 @@ export const cylinderShape: ShapeDefinition = {
     { id: 'tall', values: { cylDiameter: 100, panelHeight: 180 } },
   ],
   validate: (p) => cylinderLayout(p).warnings,
+  limits: [
+    ...POWER_LIMITS,
+    { key: 'baseGroove', warns: ['warn.lidTooThin'] },
+    { key: 'baseHeight', warns: ['warn.baseTooThin'] },
+    { key: 'cylDiameter', warns: ['warn.lampTooBig', ...POWER_WARNS] },
+  ],
   async prepare(p) {
     if (str(p, 'baseText').trim() || str(p, 'topText').trim()) await ensureFont(str(p, 'textFont'));
   },

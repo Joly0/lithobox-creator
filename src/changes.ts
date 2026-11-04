@@ -12,6 +12,18 @@ export interface ChangeDay {
 
 export const CHANGES: ChangeDay[] = [
   {
+    date: '2026-11-05',
+    items: [
+      {
+        en: 'Settings now make room for the parts inside them: a post never gets too thin for its magnet, a lid or base never too thin for its groove, and the lamp grows around a large lamp or power bank, instead of a part quietly disappearing. Battery base magnets stay small enough for its pillars.',
+        de: 'Einstellungen machen jetzt Platz für die Teile darin: Ein Pfosten wird nie zu dünn für seinen Magneten, Deckel oder Boden nie zu dünn für ihre Nut, und die Lampe wächst um eine große Lampe oder Powerbank mit, statt dass ein Teil still verschwindet. Die Magnete der Akkubasis bleiben klein genug für ihre Säulen.',
+        es: 'Los ajustes ahora dejan sitio para las piezas que llevan dentro: un poste nunca queda demasiado fino para su imán, una tapa o base nunca demasiado fina para su ranura, y la lámpara crece alrededor de una bombilla o batería grande, en lugar de que una pieza desaparezca sin avisar. Los imanes de la base de batería se mantienen lo bastante pequeños para sus pilares.',
+        fr: "Les réglages laissent maintenant la place aux pièces qu'ils contiennent : un pilier n'est jamais trop fin pour son aimant, un couvercle ou un socle jamais trop fin pour sa rainure, et la lampe grandit autour d'une grande ampoule ou batterie, au lieu qu'une pièce disparaisse sans prévenir. Les aimants du socle à batterie restent assez petits pour ses piliers.",
+        it: 'Le impostazioni ora lasciano spazio alle parti che contengono: un pilastrino non diventa mai troppo sottile per il suo magnete, un coperchio o una base mai troppo sottili per la loro scanalatura, e la lampada cresce attorno a una lampadina o power bank grande, invece di far sparire un pezzo senza avviso. I magneti della base a batteria restano abbastanza piccoli per i suoi pilastri.',
+      },
+    ],
+  },
+  {
     date: '2026-11-01',
     items: [
       {

@@ -18,10 +18,11 @@ describe('layouts at the edge of the allowed values', () => {
   });
 
   it('a pendant shade too thick for its narrow end gets a thinner wall and a warning', () => {
-    const p = sanitize(shadeShape, {
+    // raw values: sanitize would widen the narrow end instead (see min-from.test.ts)
+    const p = {
       ...defaultValues(shadeShape),
       shadeShape: 'cone', mount: 'pendant', topDiameter: 300, bottomDiameter: 50, panelHeight: 40, panelThickness: 8,
-    } as ParamValues);
+    } as ParamValues;
     const L = shadeLayout(p);
     expect(L.rBi).toBeGreaterThan(0.999);
     expect(L.rTi).toBeGreaterThan(0.999);

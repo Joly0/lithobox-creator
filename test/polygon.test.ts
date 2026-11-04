@@ -15,10 +15,10 @@ describe('polygon lamp', () => {
       const p = sanitize(polygonShape, { ...defaultValues(polygonShape), sides });
       const L = polygonLayout(p);
       // a triangle with 80 mm sides is too narrow for the 64 mm lamp seat, and its sharp
-      // corners leave too little room for plug and magnet in 14 mm posts; it says so
-      const tri = sides === '3' ? ['warn.lampTooBig', 'warn.magnetNoFit'] : [];
-      expect(L.warnings.map((w) => w.key).sort()).toEqual(tri);
-      expect(L.joint.magnetsFit).toBe(sides !== '3');
+      // corners leave too little room for plug and magnet in 14 mm posts; both grow for them
+      if (sides === '3') expect([p.panelWidth, p.postSize]).not.toEqual([80, 14]);
+      expect(L.warnings).toEqual([]);
+      expect(L.joint.magnetsFit).toBe(true);
       withScope(() => {
         const r = polygonShape.build(k, p);
         expect(r.slots.map((s) => s.id)).toEqual(Array.from({ length: Number(sides) }, (_, i) => `side${i + 1}`));

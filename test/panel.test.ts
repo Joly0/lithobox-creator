@@ -74,9 +74,10 @@ describe('panel', () => {
     expect(L.warnings).toEqual([]);
   });
 
-  it('warns when the lamp does not fit the chamber', () => {
-    const p = sanitize(panelShape, { ...defaultValues(panelShape), lampDiameter: 120 });
-    expect(panelShape.validate!(p).map((w) => w.key)).toContain('warn.lampTooBig');
+  it('warns when the lamp does not fit the chamber, and grows the chamber for it', () => {
+    const raw = { ...defaultValues(panelShape), lampDiameter: 120 };
+    expect(panelShape.validate!(raw).map((w) => w.key)).toContain('warn.lampTooBig');
+    expect(panelShape.validate!(sanitize(panelShape, raw)).map((w) => w.key)).not.toContain('warn.lampTooBig');
   });
 
   it('sits the picture at the front and previews the lamp', async () => {

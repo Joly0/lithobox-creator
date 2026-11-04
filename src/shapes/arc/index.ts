@@ -10,7 +10,7 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '.
 import { box, cylinder, prism, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, lampCuts, puckLamp, roundSlotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
-import { buildPowerTray, PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
+import { buildPowerTray, PILLAR, powerFit, POWER_LIMITS, POWER_WARNS, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
 import { SOCKET_FLOOR } from '../panel/layout';
 import { buildHolder, cylY, type HolderDims, tenon } from '../panel/stand';
 import { arcGroups, withBase, withFoot, withStand } from './params';
@@ -215,6 +215,13 @@ export const arcShape: ShapeDefinition = {
     { id: 'large', values: { arcWidth: 200, panelHeight: 130, arcRadius: 200 } },
   ],
   validate: (p) => arcLayout(p).warnings,
+  limits: [
+    ...POWER_LIMITS,
+    { key: 'baseHeight', warns: ['warn.baseTooThin'] },
+    { key: 'arcWidth', warns: ['warn.lampTooBig', ...POWER_WARNS] },
+    // after the width, which bends it further
+    { key: 'arcRadius', warns: ['warn.arcTooBent'] },
+  ],
   async prepare(p) {
     if (withFoot(p) && str(p, 'baseText').trim()) await ensureFont(str(p, 'textFont'));
   },

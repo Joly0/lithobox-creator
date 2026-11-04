@@ -66,6 +66,7 @@ export const heartShape: ShapeDefinition = {
     { id: 'large', values: { panelWidth: 160, panelHeight: 146 } },
   ],
   validate: (p) => (baseLight(p) ? seatLayout(p).warnings : panelShape.validate?.(p) ?? []),
+  limits: panelShape.limits,
   prepare: async (p) => {
     await panelShape.prepare?.(p);
     if (baseLight(p) && str(p, 'baseText').trim()) await ensureFont(str(p, 'textFont'));

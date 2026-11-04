@@ -8,7 +8,7 @@ import { box, prism, roundedRect, toMeshData, type Kernel, type Manifold } from 
 import { ensureFont } from '../../geometry/text';
 import { cableCuts, fitText, frontText, lampCuts, puckLamp, slotMatrix } from '../common/base';
 import { applyLidJoint, jointGeometry, type JointGeometry } from '../common/lid';
-import { powerUnderside, pushPowerInfo, rectTray } from '../common/power';
+import { POWER_LIMITS, POWER_WARNS, powerUnderside, pushPowerInfo, rectTray } from '../common/power';
 import { boxLayout, type BoxLayout } from './layout';
 import { boxGroups } from './params';
 
@@ -193,6 +193,14 @@ export const boxShape: ShapeDefinition = {
     { id: 'xl', values: { panelWidth: 190, panelHeight: 190, rectangular: false, panelThickness: 3.2, lampDiameter: 64 } },
   ],
   validate: (p) => boxLayout(p).warnings,
+  limits: [
+    ...POWER_LIMITS,
+    { key: 'postSize', warns: ['warn.magnetNoFit', 'warn.noRoom', 'warn.postTooThin'] },
+    { key: 'baseHeight', warns: ['warn.baseTooThin'] },
+    { key: 'lidThickness', warns: ['warn.lidTooThin'] },
+    { key: 'panelWidth', warns: ['warn.lampTooBig', ...POWER_WARNS], free: ['sideWidth'] },
+    { key: 'sideWidth', warns: ['warn.lampTooBig', ...POWER_WARNS], free: ['panelWidth'] },
+  ],
   async prepare(p) {
     if (str(p, 'baseText').trim() || str(p, 'topText').trim()) await ensureFont(str(p, 'textFont'));
   },

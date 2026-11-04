@@ -1,6 +1,6 @@
 import './style.css';
-import { linkFormat } from './core/format';
-import { allParams, defaultValues, matchingPreset, sanitize } from './core/shape';
+import { linkFormat, settleFormats } from './core/format';
+import { allParams, defaultValues, matchingPreset, sanitize, settleLimits } from './core/shape';
 import { track } from './track';
 import type { BuildResult, ParamValues } from './core/types';
 import { loadProfile, profileFromFile, saveProfile, type StoredProfile } from './export/profile';
@@ -152,7 +152,10 @@ function refine(): void {
 const onParam = (k: string, v: ParamValues) => {
   values = v;
   // a picture format keeps width and height in proportion
-  if (linkFormat(values, allParams(shape), k, before)) panels.forEach((p) => p.setValues(values));
+  // e.g. a post grows with its magnet and never shrinks below it; a grown width may leave its picture format
+  const grown = settleLimits(shape, values);
+  if (grown) settleFormats(values, allParams(shape));
+  if (linkFormat(values, allParams(shape), k, before) || grown) panels.forEach((p) => p.setValues(values));
   syncPreset();
   rebuild();
 };
