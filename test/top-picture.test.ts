@@ -29,7 +29,7 @@ const CASES: { name: string; shape: ShapeDefinition; values: ParamValues; lid: s
 
 describe('picture on top of the lid', () => {
   for (const c of CASES)
-    it(`${c.name}: cut to the outline, lying flat, in the lid's rebate`, async () => {
+    it(`${c.name}: cut to the outline, lying flat, in the lid's pocket`, async () => {
       const k = await loadKernel();
       const p = sanitize(c.shape, { ...defaultValues(c.shape), ...c.values, topPanel: true });
       withScope(() => {
@@ -52,11 +52,11 @@ describe('picture on top of the lid', () => {
         // (within 1.5 %: along the picture's edge the thickness ramps across one grid cell)
         const expected = pic * t0 + (all - pic) * T;
         expect(Math.abs(solid.volume() / expected - 1)).toBeLessThan(0.015);
-        // in its place it lies in the lid's rebate without touching the lid
+        // in its place it lies in the lid's pocket without touching the lid
         const lid = placed(k, r.parts.find((x) => x.id === c.lid)!.mesh.positions, r.parts.find((x) => x.id === c.lid)!.mesh.indices);
         expect(lid.status()).toBe('NoError');
         expect(placed(k, pos, litho.mesh.indices, slot.matrix).intersect(lid).volume()).toBeLessThan(1e-3);
-        // and is not loose: the ledge is right under it
+        // and is not loose: the snap tabs are right under it
         const under = placed(k, pos, litho.mesh.indices, slot.matrix).translate([0, 0, -0.3]);
         expect(under.intersect(lid).volume()).toBeGreaterThan(1);
       });

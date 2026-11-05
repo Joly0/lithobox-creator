@@ -15,6 +15,13 @@ export const CHANGES: ChangeDay[] = [
     date: '2026-11-05',
     items: [
       {
+        en: "Lids now hold their top lithophane (box, polygon and cylinder lamps): it snaps in from below behind a rim on the visible face, and two tabs at its front and back edges keep it from falling out.",
+        de: 'Deckel halten jetzt ihre obere Lithophanie (Box-, Vieleck- und Zylinderlampe): Sie wird von unten hinter einen Rand auf der Sichtseite eingerastet, und zwei Nasen an ihrer vorderen und hinteren Kante verhindern, dass sie herausfällt.',
+        es: 'Las tapas ahora sujetan su litofanía superior (lámparas de caja, polígono y cilindro): encaja desde abajo tras un reborde en la cara visible, y dos topes en sus bordes delantero y trasero evitan que se caiga.',
+        fr: "Les couvercles tiennent maintenant leur lithophanie du dessus (lampes boîte, polygone et cylindre) : elle se clipse par-dessous derrière un rebord sur la face visible, et deux ergots sur ses bords avant et arrière l'empêchent de tomber.",
+        it: 'I coperchi ora trattengono la loro litofania superiore (lampade a scatola, poligono e cilindro): si aggancia dal basso dietro un bordo sulla faccia visibile, e due dentini sui lati anteriore e posteriore le impediscono di cadere.',
+      },
+      {
         en: 'Settings now make room for the parts inside them: a post never gets too thin for its magnet, a lid or base never too thin for its groove, and the lamp grows around a large lamp or power bank, instead of a part quietly disappearing. Battery base magnets stay small enough for its pillars.',
         de: 'Einstellungen machen jetzt Platz für die Teile darin: Ein Pfosten wird nie zu dünn für seinen Magneten, Deckel oder Boden nie zu dünn für ihre Nut, und die Lampe wächst um eine große Lampe oder Powerbank mit, statt dass ein Teil still verschwindet. Die Magnete der Akkubasis bleiben klein genug für ihre Säulen.',
         es: 'Los ajustes ahora dejan sitio para las piezas que llevan dentro: un poste nunca queda demasiado fino para su imán, una tapa o base nunca demasiado fina para su ranura, y la lámpara crece alrededor de una bombilla o batería grande, en lugar de que una pieza desaparezca sin avisar. Los imanes de la base de batería se mantienen lo bastante pequeños para sus pilares.',

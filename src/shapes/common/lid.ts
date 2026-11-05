@@ -6,7 +6,7 @@
 // a flat outer face per post for a latch arm (a point on the face, its outward direction).
 import { num, round, str } from '../../core/shape';
 import type { Message, ParamValues } from '../../core/types';
-import { box, cylinder, roundedRect, squareFrustum, type Kernel, type Manifold } from '../../geometry/kernel';
+import { box, cylinder, roundedRect, squareFrustum, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
 
 export type LidJoint = 'plugMagnet' | 'plug' | 'magnet' | 'latch' | 'pegs';
 
@@ -75,6 +75,27 @@ export function jointLayout(p: ParamValues, lidBottom: number, socketTop: number
 export const magnetR = (p: ParamValues) => num(p, 'magnetDiameter') / 2 + num(p, 'magnetClearance');
 export const magnetH = (p: ParamValues) => num(p, 'magnetHeight') + 0.2; // room for glue
 export const pegHeight = (p: ParamValues) => num(p, 'pegSize') * 0.55;
+
+/** Face over a top lithophane, which snaps into its lid from below. */
+export const TOP_SKIN = 1.5;
+/** Tabs under that lithophane's front and back edges: height, width, and how far they reach under it. */
+const TAB_H = 1;
+const TAB_W = 20;
+const TAB_GRIP = 1.5;
+/** Lid thickness a top lithophane needs: the face, the picture with 0.2 mm play, the tabs. */
+export const topLidNeeds = (thick: number) => TOP_SKIN + thick + 0.2 + TAB_H;
+
+/**
+ * The tabs a top lithophane rests on at height z, once pushed from below into `pocket` (its
+ * outline grown by `play`): the pocket's edge band at the front and back, so it follows any
+ * outline and lands in the back corner of an odd polygon.
+ */
+export function snapTabs(k: Kernel, pocket: CrossSection, play: number, z: number): Manifold {
+  const b = pocket.bounds();
+  const w = Math.min(TAB_W, (b.max[0] - b.min[0]) / 3);
+  const band = pocket.offset(0.01).subtract(pocket.offset(-(play + TAB_GRIP), 'Miter'));
+  return band.intersect(k.CrossSection.square([w, 4 * (b.max[1] - b.min[1])], true)).extrude(TAB_H).translate([0, 0, z - TAB_H]);
+}
 
 /** Rounded square centred on (x, y), turned `rot` degrees: side w0 at z0, tapering to w1 at z0 + h. */
 function taperedRoundSquare(k: Kernel, x: number, y: number, z0: number, h: number, w0: number, w1: number, r: number, rot = 0): Manifold {

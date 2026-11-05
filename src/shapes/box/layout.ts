@@ -7,7 +7,7 @@
 import { bool, num, round, str } from '../../core/shape';
 import type { Message, ParamValues } from '../../core/types';
 import { cableSlot, type CableSlot } from '../common/base';
-import { jointLayout, type LidJoint } from '../common/lid';
+import { jointLayout, type LidJoint, topLidNeeds } from '../common/lid';
 import { PILLAR, powerFit, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout } from '../common/power';
 
 export type { LidJoint, PowerLayout };
@@ -122,7 +122,7 @@ export function boxLayout(p: ParamValues): BoxLayout {
     topW = Math.min(topW, topRoomX - 2 * gap);
     topD = Math.min(topD, topRoomY - 2 * gap);
   }
-  if (bool(p, 'topPanel') && thick + 0.2 + 1.2 > lidThick) warnings.push({ key: 'warn.lidTooThin' });
+  if (bool(p, 'topPanel') && topLidNeeds(thick) > lidThick) warnings.push({ key: 'warn.lidTooThin' });
 
   let power: PowerLayout | null = null;
   if (bool(p, 'powerBase')) {

@@ -11,7 +11,7 @@ import { box, prism, toMeshData, type CrossSection, type Kernel, type Manifold }
 import { applyFrontText, cableCuts, cableSlot, type CableSlot, frontText, lampCuts, lidText, puckLamp, slotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
 import { buildPowerTray, PILLAR, powerFit, POWER_LIMITS, POWER_WARNS, POWER_LEDGE, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo } from '../common/power';
-import { applyLidJoint, jointGeometry, type JointGeometry, jointLayout, type JointLayout, type LatchFace, type Socket } from '../common/lid';
+import { applyLidJoint, jointGeometry, type JointGeometry, jointLayout, type JointLayout, type LatchFace, snapTabs, type Socket, TOP_SKIN, topLidNeeds } from '../common/lid';
 import { polygonGroups } from './params';
 
 const COLORS = { body: '#c9ccd3', lid: '#e9a23b', power: '#9aa3b5', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -110,7 +110,7 @@ export function polygonLayout(p: ParamValues): PolygonLayout {
   if (lidGroove + 0.6 > num(p, 'lidThickness')) warnings.push({ key: 'warn.lidTooThin' });
   // the top picture's rebate stays a wall inside the side pictures' grooves, as on the box
   const topR = bool(p, 'topPanel') ? Math.max(0, plane - thick / 2 - 2 * gap - WALL) : 0;
-  if (topR && thick + 0.2 + 1.2 > num(p, 'lidThickness')) warnings.push({ key: 'warn.lidTooThin' });
+  if (topR && topLidNeeds(thick) > num(p, 'lidThickness')) warnings.push({ key: 'warn.lidTooThin' });
 
   const joint = jointLayout(p, lidBottom, socketTop, post, t1 - t0 - 0.6, warnings);
   // the box's suggestion assumes the socket grows as fast as the post; round a polygon's
@@ -261,12 +261,17 @@ function buildLid(k: Kernel, p: ParamValues, L: PolygonLayout, joint: JointGeome
   const r = num(p, 'cornerRadius');
   let lid = prism(outline(k, L, L.apothem, r), L.lidBottom, L.lidTop);
   const cuts = [...grooves(k, L, L.panelTop + L.gap + 0.3)];
+  let tabs: Manifold | undefined;
   if (L.topR) {
-    // a rebate the top picture lies in (sharp corners, like the picture), on a ledge round the opening
-    cuts.push(prism(outline(k, L, L.topR + L.wgap), L.lidTop - (L.thick + 0.2), L.lidTop + 1));
+    // the top picture snaps in from below (sharp corners, like the picture), behind a ledge on the visible face
+    const top = L.lidTop - TOP_SKIN;
+    const pocket = outline(k, L, L.topR + L.wgap);
+    cuts.push(prism(pocket, L.lidBottom - 1, top));
     cuts.push(prism(outline(k, L, L.topR - num(p, 'topLedge'), 1), L.lidBottom - 1, L.lidTop + 1));
+    tabs = snapTabs(k, pocket, L.wgap, top - (L.thick + 0.2));
   } else cuts.push(prism(outline(k, L, lidOpening(L), Math.max(1, r - 2)), L.lidBottom - 1, L.lidTop + 1));
   lid = lid.subtract(k.Manifold.union(cuts));
+  if (tabs) lid = lid.add(tabs);
   lid = applyLidJoint(k, lid, joint);
   return lid;
 }
@@ -286,7 +291,7 @@ function topSlot(L: PolygonLayout): PanelSlot {
     width: Math.max(...xs) - Math.min(...xs),
     height: Math.max(...ys) - Math.min(...ys),
     thickness: L.thick,
-    matrix: slotMatrix([0, cy, L.lidTop - 0.2 - L.thick / 2], [1, 0, 0], [0, 1, 0], [0, 0, 1]),
+    matrix: slotMatrix([0, cy, L.lidTop - TOP_SKIN - 0.1 - L.thick / 2], [1, 0, 0], [0, 1, 0], [0, 0, 1]),
     outline: { radius: L.topR, sides: L.n, cy: -cy },
   };
 }

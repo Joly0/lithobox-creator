@@ -7,7 +7,7 @@ import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput, Vec3 } f
 import { box, prism, roundedRect, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { ensureFont } from '../../geometry/text';
 import { cableCuts, fitText, frontText, lampCuts, puckLamp, slotMatrix } from '../common/base';
-import { applyLidJoint, jointGeometry, type JointGeometry } from '../common/lid';
+import { applyLidJoint, jointGeometry, type JointGeometry, snapTabs, TOP_SKIN } from '../common/lid';
 import { POWER_LIMITS, POWER_WARNS, powerUnderside, pushPowerInfo, rectTray } from '../common/power';
 import { boxLayout, type BoxLayout } from './layout';
 import { boxGroups } from './params';
@@ -67,14 +67,19 @@ function buildLid(k: Kernel, p: ParamValues, L: BoxLayout, joint: JointGeometry)
   const r = num(p, 'cornerRadius');
   let lid = prism(roundedRect(k, L.outerX, L.outerY, r), L.lidBottom, L.lidTop);
   const cuts: Manifold[] = panelEnvelopes(k, L, L.gap + 0.3);
+  let tabs: Manifold | undefined;
   if (bool(p, 'topPanel')) {
+    // the top lithophane snaps in from below, behind the ledge on the visible face
     const g = L.wgap;
-    const rebateZ = L.lidTop - (L.thick + 0.2);
-    cuts.push(box(k, [-L.topW / 2 - g, -L.topD / 2 - g, rebateZ], [L.topW / 2 + g, L.topD / 2 + g, L.lidTop + 1]));
+    const top = L.lidTop - TOP_SKIN;
+    const pocket = k.CrossSection.square([L.topW + 2 * g, L.topD + 2 * g], true);
+    cuts.push(prism(pocket, L.lidBottom - 1, top));
     const ledge = num(p, 'topLedge');
     cuts.push(prism(roundedRect(k, L.topW - 2 * ledge, L.topD - 2 * ledge, 1), L.lidBottom - 1, L.lidTop + 1));
+    tabs = snapTabs(k, pocket, g, top - (L.thick + 0.2));
   }
   lid = lid.subtract(k.Manifold.union(cuts));
+  if (tabs) lid = lid.add(tabs);
   lid = applyLidJoint(k, lid, joint);
   return lid;
 }
@@ -161,7 +166,7 @@ function panelSlots(L: BoxLayout, top: boolean): PanelSlot[] {
     { id: 'left', width: L.panelD, height: L.panelH, thickness: L.thick, matrix: slotMatrix([-L.planeX, 0, zc], [0, -1, 0], [0, 0, 1], [-1, 0, 0]) },
   ];
   if (top)
-    slots.push({ id: 'top', width: L.topW, height: L.topD, thickness: L.thick, matrix: slotMatrix([0, 0, L.lidTop - 0.2 - L.thick / 2], [1, 0, 0], [0, 1, 0], [0, 0, 1]) });
+    slots.push({ id: 'top', width: L.topW, height: L.topD, thickness: L.thick, matrix: slotMatrix([0, 0, L.lidTop - TOP_SKIN - 0.1 - L.thick / 2], [1, 0, 0], [0, 1, 0], [0, 0, 1]) });
   return slots;
 }
 

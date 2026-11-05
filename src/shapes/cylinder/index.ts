@@ -6,10 +6,11 @@
 // picture's middle facing -Y.
 import { bool, num, round, type ShapeDefinition, str } from '../../core/shape';
 import type { BuildResult, Message, PanelSlot, ParamValues, PartOutput } from '../../core/types';
-import { cylinder, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
+import { cylinder, prism, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { annulus, applyFrontText, cableCuts, cableSlot, type CableSlot, curvedText, lampCuts, lidText, puckLamp, ringText, roundSlotMatrix } from '../common/base';
 import { ensureFont } from '../../geometry/text';
 import { PILLAR, powerFit, POWER_LEDGE, POWER_LIMITS, POWER_WARNS, POWER_WALL, powerLayout, type PowerLayout, powerTextZ, powerUnderside, pushPowerInfo, roundTray } from '../common/power';
+import { snapTabs, TOP_SKIN, topLidNeeds } from '../common/lid';
 import { cylinderGroups, withBase } from './params';
 
 const COLORS = { base: '#c9ccd3', power: '#9aa3b5', ring: '#e9a23b', panel: '#fff4dc', lamp: '#8fb7ff', text: '#3b4150' };
@@ -91,7 +92,7 @@ export function cylinderLayout(p: ParamValues): CylinderLayout {
   }
   // a round picture in the ring: its rebate a wall inside the cylinder's groove
   const topR = bool(p, 'topRing') && bool(p, 'topPanel') ? rIn - 2 * gap - WALL : 0;
-  if (topR && thick + 0.2 + 1.2 > groove + TOP) warnings.push({ key: 'warn.lidTooThin' });
+  if (topR && topLidNeeds(thick) > groove + TOP) warnings.push({ key: 'warn.lidTooThin' });
   return { rOut, rIn, rBase, thick, gap, groove, width: 2 * Math.PI * (rIn + thick / 2), height, baseTop, panelBottom, panelTop, top, topR, cable, power, warnings };
 }
 
@@ -110,9 +111,11 @@ function buildBase(k: Kernel, p: ParamValues, L: CylinderLayout): Manifold {
 function buildRing(k: Kernel, p: ParamValues, L: CylinderLayout): Manifold {
   const z0 = L.panelTop - L.groove;
   if (!L.topR) return annulus(k, L.rIn - LIP, L.rBase, z0, L.top).subtract(groove(k, L, z0 - 1, L.panelTop + L.gap));
-  // a lid with a round picture: a rebate it lies in, on a ledge round the opening
-  const rebate = cylinder(k, 0, 0, L.top - (L.thick + 0.2), L.thick + 1.2, L.topR + L.gap);
-  return annulus(k, L.topR - num(p, 'topLedge'), L.rBase, z0, L.top).subtract(groove(k, L, z0 - 1, L.panelTop + L.gap)).subtract(rebate);
+  // a lid with a round picture: it snaps in from below, behind a ledge on the visible face
+  const top = L.top - TOP_SKIN;
+  const pocket = k.CrossSection.circle(L.topR + L.gap);
+  const ring = annulus(k, L.topR - num(p, 'topLedge'), L.rBase, z0, L.top).subtract(groove(k, L, z0 - 1, L.panelTop + L.gap));
+  return ring.subtract(prism(pocket, z0 - 1, top)).add(snapTabs(k, pocket, L.gap, top - (L.thick + 0.2)));
 }
 
 export const cylinderShape: ShapeDefinition = {
@@ -179,7 +182,7 @@ export const cylinderShape: ShapeDefinition = {
     pushPowerInfo(info, L.power, p);
     const slots = [slot];
     if (L.topR) {
-      const z1 = L.top - 0.2;
+      const z1 = L.top - TOP_SKIN - 0.1;
       slots.push({ id: 'top', width: 2 * L.topR, height: 2 * L.topR, thickness: L.thick, matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, z1 - L.thick / 2, 1], outline: { radius: L.topR, cy: 0 } });
       parts.push({ id: 'panel-top', mesh: toMeshData(cylinder(k, 0, 0, z1 - L.thick, L.thick, L.topR)), color: COLORS.panel, explode: [0, 0, 110], printRotation: [0, 0, 0], preview: true, ghost: true });
     }
