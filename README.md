@@ -41,7 +41,9 @@ small ornament to a 21 cm box.
 Everything runs locally in the browser: no server, no upload, photos never
 leave the device. The live site counts anonymous usage (visits, chosen shapes,
 presets and download formats) with a self-hosted Umami: no cookies, no photos,
-no settings.
+no settings. The Feedback button sends only what the person types, plus the app
+version, shape, browser and language; it is kept as an issue in a private GitHub
+repository (see `server/feedback/README.md`).
 
 ## Development
 

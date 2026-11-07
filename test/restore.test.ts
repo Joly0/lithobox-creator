@@ -32,7 +32,8 @@ describe('restored controls', () => {
   });
 
   it('has a handler in main.ts for every box and slider in index.html', () => {
-    const html = readFileSync('index.html', 'utf8');
+    // the feedback dialog reads its radios when it sends, so a restored one cannot end up ignored
+    const html = readFileSync('index.html', 'utf8').replace(/<dialog id="feedback".*?<\/dialog>/s, '');
     const main = readFileSync('src/main.ts', 'utf8');
     const ids = [...html.matchAll(/<input[^>]*type="(?:checkbox|range|radio)"[^>]*>/g)].map((m) => /id="([^"]+)"/.exec(m[0])?.[1]);
     expect(ids.length).toBeGreaterThan(0);

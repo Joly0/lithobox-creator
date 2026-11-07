@@ -1,0 +1,55 @@
+# Feedback endpoint for the Lithobox page. Start it with:
+#   docker compose up -d --build
+# The values marked "from .env" come from a .env file beside this one, which is never committed.
+services:
+  feedback:
+    build: .
+    restart: unless-stopped
+
+    # ---- Hardening ----
+    # The container only reads its one script and talks to the network, so it gets
+    # nothing else. Nothing here needs changing unless the script starts writing files.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+    environment:
+      # ---- GitHub ----
+      # Fine-grained token (from .env) limited to the feedback repository, with only
+      # the "Issues: read and write" permission. Replace it when it expires: until
+      # then people see "That didn't get through" and the log shows GitHub's 401.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:?set GITHUB_TOKEN in .env}
+      # The repository that receives the issues, as owner/name (from .env). Make it
+      # private: what visitors write appears there without review.
+      FEEDBACK_REPO: ${FEEDBACK_REPO:?set FEEDBACK_REPO in .env}
+
+      # ---- Who may send ----
+      # The one site allowed to post here. Change it only if the page moves to another
+      # domain. It stops other websites using the form, not scripts, which the limits below handle.
+      ALLOWED_ORIGIN: https://lithobox.app
+
+      # ---- Visitor address ----
+      # The request header your reverse proxy puts the visitor's address in, used only
+      # to count messages per visitor. It must hold one address, for example
+      # cf-connecting-ip or x-real-ip. If the header never arrives, all visitors count
+      # as one and share the hourly limit below, so check this when changing proxies.
+      CLIENT_IP_HEADER: cf-connecting-ip
+
+      # ---- Spam limits ----
+      # Messages one visitor may send per hour. Lower is stricter on floods from one
+      # address; higher helps if several real people share one address, like a school.
+      PER_IP_PER_HOUR: "5"
+      # Messages everyone together may send per day: the hard stop that keeps a flood
+      # out of your inbox. Raise it if real feedback ever hits it (the log says
+      # "rate limit reached"); while it is reached, nobody can send until the day resets.
+      PER_DAY: "50"
+
+    # ---- Reaching it ----
+    # No published ports on purpose: only the reverse proxy should reach this container.
+    networks: [proxy]
+
+networks:
+  proxy:
+    external: true
+    # The existing Docker network your reverse proxy can reach (from .env).
+    name: ${PROXY_NETWORK:?set PROXY_NETWORK in .env}

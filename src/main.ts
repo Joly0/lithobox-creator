@@ -18,6 +18,7 @@ import { browserFamily } from './ui/browser';
 import { replayRestored } from './ui/restore';
 import { printLayout } from './ui/printlayout';
 import { renderChanges, wireChanges } from './ui/changes';
+import { renderFeedback, wireFeedback } from './ui/feedback';
 import { save, wireExports } from './ui/export';
 import { changedValues, hashFor, readHash } from './ui/hash';
 import { NoViewer, Viewer, type LampMap, type ModelViewer } from './ui/viewer';
@@ -703,9 +704,11 @@ function translateStatic(): void {
   if (noViewer) showNoViewer();
   renderProfile();
   renderChanges();
+  renderFeedback();
   if (last) renderInfo(last);
 }
 wireChanges();
+wireFeedback(() => shape.id);
 onLanguageChange(translateStatic);
 translateStatic();
 rebuild();

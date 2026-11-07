@@ -43,6 +43,27 @@ button, input, select { font: inherit; color: inherit; }
 .changes h3 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 14px 0 4px; }
 .changes ul { margin: 0; padding-left: 18px; }
 .changes li { margin: 3px 0; }
+.feedback { width: min(480px, calc(100vw - 32px)); }
+.feedback form { margin-top: 14px; }
+.feedback-kind { display: flex; border: 0; margin: 0 0 12px; padding: 0; }
+.feedback-kind label { flex: 1; text-align: center; padding: 6px 8px; border: 1px solid var(--line); font-size: 13px; cursor: pointer; }
+.feedback-kind label:first-of-type { border-radius: 6px 0 0 6px; border-right: 0; }
+.feedback-kind label:last-of-type { border-radius: 0 6px 6px 0; }
+.feedback-kind input { position: absolute; opacity: 0; }
+.feedback-kind label:has(input:checked) { background: color-mix(in srgb, var(--accent) 16%, var(--panel)); border-color: var(--accent); font-weight: 600; }
+.feedback-kind label:last-of-type:has(input:checked), .feedback-kind label:first-of-type:has(input:checked) { border-right: 1px solid var(--accent); }
+.feedback-kind label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.feedback-field { display: block; margin-bottom: 12px; font-size: 13px; }
+.feedback-field > span { display: block; margin-bottom: 4px; }
+.feedback-field small { color: var(--muted); }
+.feedback-field textarea, .feedback-field input { width: 100%; box-sizing: border-box; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; }
+.feedback-field textarea { min-height: 104px; resize: vertical; }
+.feedback-trap { position: absolute; left: -9999px; }
+.feedback details ul { margin: 6px 0 0; padding-left: 18px; overflow-wrap: anywhere; }
+.feedback-error { color: var(--warn); font-size: 13px; margin: 0 0 12px; }
+.feedback-foot { display: flex; justify-content: flex-end; }
+.feedback-thanks { text-align: center; padding: 18px 0 8px; }
+.feedback-thanks p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
 .logo { width: 22px; height: 22px; border-radius: 5px; background: var(--accent); box-shadow: inset 0 0 0 5px var(--accent), inset 0 0 0 11px #fff3d6; }
 #lang { width: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
 

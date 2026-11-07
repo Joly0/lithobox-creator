@@ -12,6 +12,18 @@ export interface ChangeDay {
 
 export const CHANGES: ChangeDay[] = [
   {
+    date: '2026-11-07',
+    items: [
+      {
+        en: 'You can now send a bug report or an idea right from the page with the new Feedback button, no account needed. Your photos and your design are never sent.',
+        de: 'Du kannst jetzt direkt auf der Seite einen Fehler melden oder eine Idee schicken: mit dem neuen Feedback-Knopf, ganz ohne Konto. Deine Fotos und dein Design werden nie gesendet.',
+        es: 'Ahora puedes enviar un error o una idea desde la propia página con el nuevo botón Comentarios, sin necesidad de cuenta. Tus fotos y tu diseño nunca se envían.',
+        fr: "Vous pouvez maintenant signaler un problème ou proposer une idée directement depuis la page avec le nouveau bouton Retour, sans compte. Vos photos et votre design ne sont jamais envoyés.",
+        it: "Ora puoi inviare una segnalazione o un'idea direttamente dalla pagina con il nuovo pulsante Feedback, senza account. Le tue foto e il tuo progetto non vengono mai inviati.",
+      },
+    ],
+  },
+  {
     date: '2026-11-05',
     items: [
       {

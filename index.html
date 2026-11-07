@@ -48,6 +48,7 @@
       <div class="top-actions">
         <button type="button" id="saveProject" class="btn small"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14" /></svg><span class="btn-text" data-i18n="project.save"></span></button>
         <label class="btn small" id="projectOpen"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span class="btn-text" data-i18n="project.open"></span><input type="file" id="projectFile" accept=".lithobox" hidden /></label>
+        <button type="button" id="feedbackOpen" class="btn small"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg><span class="btn-text" data-i18n="feedback.button"></span></button>
         <a class="btn small" href="https://github.com/Joly0/lithobox-creator" target="_blank" rel="noopener" aria-label="GitHub"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6" /></svg><span class="btn-text">GitHub</span></a>
         <select id="lang" aria-label="Language"></select>
       </div>
@@ -56,6 +57,24 @@
       <div class="changes-head"><h2 id="changesTitle" data-i18n="changes.title"></h2><button type="button" id="changesClose" class="link" data-i18n="changes.close"></button></div>
       <div id="changesList"></div>
       <p id="changesVersion" class="hint"></p>
+    </dialog>
+    <dialog id="feedback" class="changes feedback" aria-labelledby="feedbackTitle">
+      <div class="changes-head"><h2 id="feedbackTitle" data-i18n="feedback.title"></h2><button type="button" id="feedbackClose" class="link" data-i18n="changes.close"></button></div>
+      <form id="feedbackForm">
+        <fieldset class="feedback-kind" aria-labelledby="feedbackTitle">
+          <label><input type="radio" name="kind" value="bug" checked /> <span data-i18n="feedback.kind.bug"></span></label>
+          <label><input type="radio" name="kind" value="idea" /> <span data-i18n="feedback.kind.idea"></span></label>
+        </fieldset>
+        <label class="feedback-field"><span data-i18n="feedback.message"></span><textarea id="feedbackMessage" name="message" required minlength="5" maxlength="5000"></textarea></label>
+        <label class="feedback-field"><span><span data-i18n="feedback.email"></span> <small data-i18n="feedback.emailHint"></small></span><input type="email" name="email" maxlength="254" placeholder="name@example.com" autocomplete="email" /></label>
+        <!-- empty for people; bots fill it in and the server then drops the message -->
+        <input class="feedback-trap" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <details class="hint"><summary data-i18n="feedback.context"></summary><ul id="feedbackContext"></ul></details>
+        <p class="hint" data-i18n="feedback.private"></p>
+        <p id="feedbackError" class="feedback-error" role="alert" data-i18n="feedback.failed" hidden></p>
+        <div class="feedback-foot"><button type="submit" id="feedbackSend" class="btn primary" data-i18n="feedback.send"></button></div>
+      </form>
+      <div id="feedbackThanks" class="feedback-thanks" hidden><strong data-i18n="feedback.thanks"></strong><p data-i18n="feedback.thanksMore"></p></div>
     </dialog>
     <main class="layout">
       <aside class="side">
