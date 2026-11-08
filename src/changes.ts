@@ -28,6 +28,13 @@ export const CHANGES: ChangeDay[] = [
         fr: "Le câble de la lampe propose un nouveau choix « Pas de câble » pour les lampes à piles : le socle n'a ni trou pour le câble ni rainure dessous.",
         it: 'Il cavo della lampada ha una nuova scelta "Nessun cavo" per le lampade a batterie: la base non ha il foro per il cavo né il canale sotto.',
       },
+      {
+        en: 'The steel disc recess also fits the sticky pad of lamps that stick on: its settings now say "disc or pad".',
+        de: 'Die Vertiefung für die Stahlscheibe passt auch für das Klebepad von Lampen zum Aufkleben: Ihre Einstellungen heißen jetzt „Scheibe oder Pad“.',
+        es: 'El hueco del disco de acero sirve también para la almohadilla adhesiva de las lámparas que se pegan: sus ajustes ahora dicen "disco o almohadilla".',
+        fr: "Le logement du disque en acier convient aussi à la pastille adhésive des lampes à coller : ses réglages disent maintenant « disque ou pastille ».",
+        it: 'L\'incavo del disco in acciaio va bene anche per il pad adesivo delle lampade da attaccare: le sue impostazioni ora dicono "disco o pad".',
+      },
     ],
   },
   {
