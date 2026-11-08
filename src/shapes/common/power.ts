@@ -8,6 +8,7 @@
 import { bool, type Limit, num, round, str } from '../../core/shape';
 import type { Message, ParamValues } from '../../core/types';
 import { box, cylinder, prism, roundedRect, squareFrustum, type CrossSection, type Kernel, type Manifold } from '../../geometry/kernel';
+import { hasCableChannel } from '../box/params';
 import { magnetH, magnetR, pegHeight } from './lid';
 
 export const POWER_WALL = 2.4; // wall of the power base around the shape
@@ -62,7 +63,7 @@ export function powerLayout(
   const inner = num(p, 'powerHeight');
   // the shape stands this deep in the tray rim; deeper than the cable channel under the
   // shape, so the channel's notch at the back is hidden (the cable comes up from below)
-  const seat = Math.max(4, bool(p, 'cableChannel') ? Math.min(num(p, 'cableChannelDepth'), shape.baseTop - 1) + 1.5 : 0);
+  const seat = Math.max(4, hasCableChannel(p) ? Math.min(num(p, 'cableChannelDepth'), shape.baseTop - 1) + 1.5 : 0);
   const P: PowerLayout = {
     outerX: shape.size[0],
     outerY: shape.size[1],

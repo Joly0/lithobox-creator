@@ -12,6 +12,25 @@ export interface ChangeDay {
 
 export const CHANGES: ChangeDay[] = [
   {
+    date: '2026-11-08',
+    items: [
+      {
+        en: 'The view has separate "Show lithophanes" and "Show lamp" toggles. Hiding the lithophanes now also hides the ones with a photo, not only the plain stand-ins.',
+        de: 'Die Ansicht hat getrennte Schalter „Lithophanien anzeigen“ und „Lampe anzeigen“. Beim Ausblenden der Lithophanien verschwinden jetzt auch die mit Foto, nicht nur die einfachen Platzhalter.',
+        es: 'La vista tiene interruptores separados para "Mostrar litofanías" y "Mostrar lámpara". Al ocultar las litofanías ahora también se ocultan las que tienen foto, no solo las piezas de muestra lisas.',
+        fr: "La vue a des cases séparées « Afficher les lithophanes » et « Afficher la lampe ». Masquer les lithophanes masque maintenant aussi celles avec une photo, pas seulement les plaques de remplacement unies.",
+        it: 'La vista ha interruttori separati "Mostra litofanie" e "Mostra lampada". Nascondere le litofanie ora nasconde anche quelle con una foto, non solo i segnaposto semplici.',
+      },
+      {
+        en: 'Lamp cable has a new "No cable" choice for battery lamps: the base gets no cable hole and no channel underneath.',
+        de: 'Beim Lampenkabel gibt es die neue Wahl „Kein Kabel“ für Batterielampen: Der Sockel bekommt kein Kabelloch und keinen Kanal darunter.',
+        es: 'El cable de la lámpara tiene una nueva opción "Sin cable" para lámparas de pilas: la base no lleva agujero para el cable ni canal debajo.',
+        fr: "Le câble de la lampe propose un nouveau choix « Pas de câble » pour les lampes à piles : le socle n'a ni trou pour le câble ni rainure dessous.",
+        it: 'Il cavo della lampada ha una nuova scelta "Nessun cavo" per le lampade a batterie: la base non ha il foro per il cavo né il canale sotto.',
+      },
+    ],
+  },
+  {
     date: '2026-11-07',
     items: [
       {

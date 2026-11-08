@@ -5,7 +5,7 @@ import { bool, num, str } from '../../core/shape';
 import type { MeshData, Message, ParamValues, PartOutput, Vec3 } from '../../core/types';
 import { box, cylinder, prism, roundedRect, toMeshData, type Kernel, type Manifold } from '../../geometry/kernel';
 import { textOutline } from '../../geometry/text';
-import { CABLE_PRESETS } from '../box/params';
+import { CABLE_PRESETS, hasCableChannel } from '../box/params';
 
 /** Slot-shaped hole (stadium) centred on (cx, cy), long axis along Y. */
 export function stadiumY(k: Kernel, cx: number, cy: number, z0: number, z1: number, width: number, length: number): Manifold {
@@ -46,6 +46,7 @@ export function cableSlot(p: ParamValues, limit: number, warnings: Message[]): C
       outer += clear;
     }
   }
+  if (mode === 'none') return { width: cw, length: outer - inner, offset: (inner + outer) / 2 };
   if (outer > limit) {
     if (mode === 'custom') warnings.push({ key: 'warn.cableOutside' });
     outer = limit;
@@ -113,8 +114,9 @@ export function lampCuts(k: Kernel, p: ParamValues, cy: number, baseTop: number)
  * runs out at the back edge `backY`.
  */
 export function cableCuts(k: Kernel, p: ParamValues, c: CableSlot, cy: number, baseTop: number, backY: number): Manifold[] {
+  if (str(p, 'cableMode') === 'none') return [];
   const cuts = [stadiumY(k, 0, cy + c.offset, -1, baseTop + 1, c.width, c.length)];
-  if (bool(p, 'cableChannel')) {
+  if (hasCableChannel(p)) {
     const cw = num(p, 'cableChannelWidth');
     const cd = Math.min(num(p, 'cableChannelDepth'), baseTop - 1);
     const y0 = cy + c.offset;

@@ -8,7 +8,10 @@ const joint = (...j: string[]) => (p: ParamValues) => j.includes(p.lidJoint as s
 // magnet size is shared by the lid and the power base
 const magnets = (p: ParamValues) => joint('plugMagnet', 'magnet')(p) || (power(p) && p.powerJoint === 'magnets');
 const customCable = (p: ParamValues) => p.cableMode === 'custom';
-const channel = (p: ParamValues) => p.cableChannel === true;
+const cable = (p: ParamValues) => p.cableMode !== 'none';
+/** The cable channel is cut: wanted, and there is a cable. */
+export const hasCableChannel = (p: ParamValues) => cable(p) && p.cableChannel === true;
+const channel = hasCableChannel;
 const power = (p: ParamValues) => p.powerBase === true;
 const disc = (p: ParamValues) => p.steelDisc === true;
 const pocket = (p: ParamValues) => power(p) && p.bankPocket === true;
@@ -112,11 +115,11 @@ export const boxGroups: ParamGroup[] = [
   {
     id: 'cable',
     params: [
-      { key: 'cableMode', type: 'select', default: 'bottom', options: ['bottom', 'side', 'custom'] },
+      { key: 'cableMode', type: 'select', default: 'bottom', options: ['bottom', 'side', 'custom', 'none'] },
       { key: 'cableHoleWidth', type: 'number', default: 9, min: 3, max: 60, step: 0.5, unit: 'mm', visibleIf: customCable },
       { key: 'cableHoleLength', type: 'number', default: 17, min: 3, max: 120, step: 0.5, unit: 'mm', visibleIf: customCable },
       { key: 'cableHoleOffset', type: 'number', default: 21.5, min: 0, max: 100, step: 0.5, unit: 'mm', visibleIf: customCable },
-      { key: 'cableChannel', type: 'bool', default: true },
+      { key: 'cableChannel', type: 'bool', default: true, visibleIf: cable },
       { key: 'cableChannelWidth', type: 'number', default: 8, min: 3, max: 30, step: 0.5, unit: 'mm', visibleIf: channel, advanced: true },
       { key: 'cableChannelDepth', type: 'number', default: 5, min: 2, max: 30, step: 0.5, unit: 'mm', visibleIf: channel, advanced: true },
     ],
