@@ -22,6 +22,7 @@ import { renderFeedback, wireFeedback } from './ui/feedback';
 import { save, wireExports } from './ui/export';
 import { changedValues, hashFor, readHash } from './ui/hash';
 import { NoViewer, Viewer, type LampMap, type ModelViewer } from './ui/viewer';
+import { hiddenParts } from './ui/hidden';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 /** The page's own controls, before the settings panels add theirs (see the end of this file). */
@@ -281,12 +282,12 @@ $('reset').addEventListener('click', () => {
 // ------------------------------------------------------------ view controls
 $<HTMLInputElement>('explode').addEventListener('input', (e) => viewer.setExplode(+(e.target as HTMLInputElement).value));
 $<HTMLInputElement>('section').addEventListener('change', (e) => viewer.setSection((e.target as HTMLInputElement).checked));
-/** Hide or show the lithophane and lamp stand-ins; re-applied after every build. */
+/** Hide or show the lithophanes and the lamp; re-applied after every build. */
 function applyGhosts(): void {
-  const show = $<HTMLInputElement>('ghosts').checked;
-  viewer.setHidden(show || !last ? [] : last.parts.filter((p) => p.preview).map((p) => p.id));
+  viewer.setHidden(last ? hiddenParts(last.parts, $<HTMLInputElement>('ghosts').checked, $<HTMLInputElement>('showLamp').checked) : []);
 }
 $<HTMLInputElement>('ghosts').addEventListener('change', applyGhosts);
+$<HTMLInputElement>('showLamp').addEventListener('change', applyGhosts);
 $<HTMLInputElement>('edges').addEventListener('change', (e) => viewer.setEdges((e.target as HTMLInputElement).checked));
 // ------------------------------------------------------------ print view
 /** Show the parts as they go to the slicer: print orientation, fins, the chosen detail. */
