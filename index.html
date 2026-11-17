@@ -3,18 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Free lithophane generator in the browser: turn your photos into a 3D printable light box, lamp, ball lamp, lampshade or ornament and download STL or 3MF. Nothing is uploaded." />
+    <meta name="description" data-seo="seo.description" content="Free lithophane generator in the browser: turn your photos into a 3D printable light box, lamp, ball lamp, lampshade or ornament and download STL or 3MF. Nothing is uploaded." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <!-- Search and link previews. The app swaps the title for app.pageTitle in the visitor's language. -->
-    <title>Lithobox Creator: lithophane light box &amp; lamp generator (STL/3MF)</title>
+    <title data-seo="app.pageTitle">Lithobox Creator: lithophane light box &amp; lamp generator (STL/3MF)</title>
     <link rel="canonical" href="https://lithobox.app/" />
+    <!-- The build writes a translated copy of this page to /de/, /fr/, /es/ and /it/. -->
+    <link rel="alternate" hreflang="en" href="https://lithobox.app/" />
+    <link rel="alternate" hreflang="de" href="https://lithobox.app/de/" />
+    <link rel="alternate" hreflang="fr" href="https://lithobox.app/fr/" />
+    <link rel="alternate" hreflang="es" href="https://lithobox.app/es/" />
+    <link rel="alternate" hreflang="it" href="https://lithobox.app/it/" />
+    <link rel="alternate" hreflang="x-default" href="https://lithobox.app/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://lithobox.app/" />
     <meta property="og:site_name" content="Lithobox Creator" />
-    <meta property="og:title" content="Lithobox Creator: lithophane light box &amp; lamp generator" />
-    <meta property="og:description" content="Turn your photos into a 3D printable lithophane light box, lamp or ornament, right in the browser. Free, download STL or 3MF." />
+    <meta property="og:title" data-seo="seo.heading" content="Lithobox Creator: lithophane light box &amp; lamp generator" />
+    <meta property="og:description" data-seo="seo.description" content="Free lithophane generator in the browser: turn your photos into a 3D printable light box, lamp, ball lamp, lampshade or ornament and download STL or 3MF. Nothing is uploaded." />
     <meta name="twitter:card" content="summary" />
     <script type="application/ld+json">
       {
@@ -39,11 +46,11 @@
   <body>
     <!-- What the page is, for visitors and crawlers that do not run JavaScript. -->
     <noscript>
-      <h1>Lithobox Creator: lithophane light box and lamp generator</h1>
-      <p>Lithobox Creator turns your photos into lithophanes you can 3D print: thin reliefs that show the picture when light shines through. Design a light box, lamp or ornament in the browser and download it as STL or 3MF for Bambu Studio, OrcaSlicer or any slicer. It is free, open source, and your photos never leave your device.</p>
-      <p>Shapes: box with up to five pictures, flat picture frame or light box, cylinder lamp, arc, polygon lamp, lampshade, ball lamp, ornament (circle, star, hexagon, heart) and heart.</p>
-      <p>Features: crop and tone each photo, lamp preview, colour lithophanes (cyan, magenta and yellow layers), lid closures, lamp sockets, battery trays, project files and share links. Available in English, German, French, Spanish and Italian.</p>
-      <p>This tool needs JavaScript and WebGL. Please enable JavaScript to use it.</p>
+      <h1 data-seo="seo.heading">Lithobox Creator: lithophane light box and lamp generator</h1>
+      <p data-seo="seo.intro">Lithobox Creator turns your photos into lithophanes you can 3D print: thin reliefs that show the picture when light shines through. Design a light box, lamp or ornament in the browser and download it as STL or 3MF for Bambu Studio, OrcaSlicer or any slicer. It is free, open source, and your photos never leave your device.</p>
+      <p data-seo="seo.shapes">Shapes: box with up to five pictures, flat picture frame or light box, cylinder lamp, arc, polygon lamp, lampshade, ball lamp, ornament (circle, star, hexagon, heart) and heart.</p>
+      <p data-seo="seo.features">Features: crop and tone each photo, lamp preview, colour lithophanes (cyan, magenta and yellow layers), lid closures, lamp sockets, battery trays, project files and share links. Available in English, German, French, Spanish and Italian.</p>
+      <p data-seo="seo.noscript">This tool needs JavaScript and WebGL. Please enable JavaScript to use it.</p>
     </noscript>
     <header class="top">
       <div class="brand"><span class="logo"></span><span data-i18n="app.title"></span><button type="button" id="version" class="version"></button></div>

@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://lithobox.app/</loc></url>
+  <url><loc>https://lithobox.app/de/</loc></url>
+  <url><loc>https://lithobox.app/fr/</loc></url>
+  <url><loc>https://lithobox.app/es/</loc></url>
+  <url><loc>https://lithobox.app/it/</loc></url>
 </urlset>

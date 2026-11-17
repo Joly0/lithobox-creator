@@ -59,7 +59,16 @@ export function t(key: string, vars?: Record<string, string | number>): string {
   });
 }
 
+/** The language a page address like /de/ stands for; null for the main page, which stays English. */
+export function languageFromPath(path: string): string | null {
+  const m = /\/([a-z]{2})\/$/.exec(path);
+  return m && m[1] !== 'en' && dictionaries[m[1]] ? m[1] : null;
+}
+
 export function detectLanguage(): string {
+  // a language page (/de/) wins: that is the language the visitor searched or clicked for
+  const fromPath = languageFromPath(location.pathname);
+  if (fromPath) return fromPath;
   const saved = (() => {
     try {
       return localStorage.getItem('lang');

@@ -1,6 +1,12 @@
 {
   "app.title": "Lithobox Creator",
   "app.pageTitle": "Lithobox Creator: generador de cajas de luz & lámparas de litofanía (STL/3MF)",
+  "seo.heading": "Lithobox Creator: generador de cajas de luz y lámparas de litofanía",
+  "seo.description": "Generador de litofanías gratis en el navegador: convierte tus fotos en una caja de luz, lámpara, lámpara de bola, pantalla de lámpara o colgante para imprimir en 3D y descárgala en STL o 3MF. No se sube nada.",
+  "seo.intro": "Lithobox Creator convierte tus fotos en litofanías para imprimir en 3D: relieves finos que muestran la imagen cuando la luz los atraviesa. Diseña una caja de luz, una lámpara o un colgante en el navegador y descárgalos en STL o 3MF para Bambu Studio, OrcaSlicer o cualquier laminador. Es gratis, de código abierto, y tus fotos nunca salen de tu dispositivo.",
+  "seo.shapes": "Formas: caja con hasta cinco imágenes, imagen plana como marco o caja de luz, lámpara cilíndrica, arco, lámpara poligonal, pantalla de lámpara, lámpara de bola, colgante (círculo, estrella, hexágono, corazón) y corazón.",
+  "seo.features": "Funciones: recorta y ajusta cada foto, vista previa de la lámpara, litofanías en color (capas cian, magenta y amarilla), cierres de tapa, portalámparas, compartimentos para pilas, archivos de proyecto y enlaces para compartir. En español, inglés, alemán, francés e italiano.",
+  "seo.noscript": "Esta herramienta necesita JavaScript y WebGL. Activa JavaScript para usarla.",
   "changes.title": "Novedades",
   "changes.close": "Cerrar",
   "changes.version": "Versión {commit}, {date}",

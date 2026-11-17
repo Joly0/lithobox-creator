@@ -6,7 +6,7 @@ import type { BuildResult, ParamValues } from './core/types';
 import { loadProfile, profileFromFile, saveProfile, type StoredProfile } from './export/profile';
 import { PROJECT_EXT, ProjectError, readProject, writeProject } from './export/project';
 import { GeometryClient } from './geometry/client';
-import { detectLanguage, languages, onLanguageChange, setLanguage, shapeKey, t } from './i18n';
+import { detectLanguage, languageFromPath, languages, onLanguageChange, setLanguage, shapeKey, t } from './i18n';
 import { getShape, shapes } from './shapes';
 import { ParamPanel } from './ui/panel';
 import { PicturesPanel } from './ui/pictures';
@@ -683,6 +683,12 @@ langSel.addEventListener('change', () => {
     localStorage.setItem('lang', langSel.value);
   } catch {
     /* private mode */
+  }
+  // move to that language's page (/de/, or the main page for English), so a reload or a link keeps it
+  const path = location.pathname;
+  if (path.endsWith('/')) {
+    const root = languageFromPath(path) ? path.slice(0, -3) : path;
+    history.replaceState(null, '', root + (langSel.value === 'en' ? '' : `${langSel.value}/`) + location.hash);
   }
 });
 
