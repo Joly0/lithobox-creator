@@ -2,7 +2,7 @@
 import { execSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
-import { localizePage } from './src/i18n/pages.ts';
+import { localizePage, SHAPE_PAGES, shapePage } from './src/i18n/pages.ts';
 
 /** The last commit (short hash, date), shown on the page as its version; "dev" outside git. */
 function version(): { commit: string; date: string } {
@@ -14,7 +14,7 @@ function version(): { commit: string; date: string } {
   }
 }
 
-/** After the build, a translated copy of the page for each language but English: dist/de/index.html, ... */
+/** After the build, a translated copy of the page for each language but English (dist/de/index.html, ...) and one per shape page. */
 function languagePages(): Plugin {
   return {
     name: 'language-pages',
@@ -26,6 +26,11 @@ function languagePages(): Plugin {
         if (lang === 'en') continue;
         mkdirSync(`dist/${lang}`, { recursive: true });
         writeFileSync(`dist/${lang}/index.html`, localizePage(html, lang, JSON.parse(readFileSync(`src/i18n/locales/${file}`, 'utf8'))));
+      }
+      const en = JSON.parse(readFileSync('src/i18n/locales/en.json', 'utf8'));
+      for (const page of SHAPE_PAGES) {
+        mkdirSync(`dist/${page.slug}`, { recursive: true });
+        writeFileSync(`dist/${page.slug}/index.html`, shapePage(html, page, en));
       }
     },
   };

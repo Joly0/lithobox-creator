@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { languageFromPath, languages } from '../src/i18n';
-import { localizePage } from '../src/i18n/pages';
+import { getShape } from '../src/shapes';
+import { localizePage, SHAPE_PAGES, shapeFromPath, shapePage } from '../src/i18n/pages';
 
 const html = readFileSync('index.html', 'utf8');
 const dict = (lang: string) => JSON.parse(readFileSync(`src/i18n/locales/${lang}.json`, 'utf8'));
@@ -31,5 +32,21 @@ describe('language pages', () => {
     expect(languageFromPath('/')).toBeNull();
     expect(languageFromPath('/en/')).toBeNull();
     expect(languageFromPath('/xx/')).toBeNull();
+  });
+
+  it('builds each shape page with its own texts and no language alternates', () => {
+    const en = dict('en');
+    for (const page of SHAPE_PAGES) {
+      expect(getShape(page.shape).id, page.slug).toBe(page.shape);
+      expect(shapeFromPath(`/${page.slug}/`)).toBe(page.shape);
+      const out = shapePage(html, page, en);
+      expect(out).toContain(`<link rel="canonical" href="https://lithobox.app/${page.slug}/" />`);
+      expect(out).toContain(`>${page.texts['seo.intro']}</p>`);
+      expect(out).not.toContain('hreflang');
+      // the paragraphs a shape page does not replace keep the main page's text
+      expect(out).toContain(`>${en['seo.features']}</p>`);
+    }
+    expect(shapeFromPath('/')).toBeNull();
+    expect(shapeFromPath('/de/')).toBeNull();
   });
 });

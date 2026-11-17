@@ -7,6 +7,7 @@ import { loadProfile, profileFromFile, saveProfile, type StoredProfile } from '.
 import { PROJECT_EXT, ProjectError, readProject, writeProject } from './export/project';
 import { GeometryClient } from './geometry/client';
 import { detectLanguage, languageFromPath, languages, onLanguageChange, setLanguage, shapeKey, t } from './i18n';
+import { shapeFromPath } from './i18n/pages';
 import { getShape, shapes } from './shapes';
 import { ParamPanel } from './ui/panel';
 import { PicturesPanel } from './ui/pictures';
@@ -37,7 +38,8 @@ function writeHash(): void {
 }
 
 const fromLink = readHash(location.hash);
-const initial = { shape: fromLink.shape ?? loadLastShape() ?? shapes[0].id, params: fromLink.params };
+// a shape page (/lithophane-lamp/) opens its shape, unless a share link names another
+const initial = { shape: fromLink.shape ?? shapeFromPath(location.pathname) ?? loadLastShape() ?? shapes[0].id, params: fromLink.params };
 let shape = getShape(initial.shape);
 // a share link (settings in the address) wins; otherwise the last visit's settings
 const hasLink = new URLSearchParams(location.hash.slice(1)).has('p');
@@ -686,14 +688,15 @@ langSel.addEventListener('change', () => {
   }
   // move to that language's page (/de/, or the main page for English), so a reload or a link keeps it
   const path = location.pathname;
-  if (path.endsWith('/')) {
+  if (path.endsWith('/') && !shapeFromPath(path)) {
     const root = languageFromPath(path) ? path.slice(0, -3) : path;
     history.replaceState(null, '', root + (langSel.value === 'en' ? '' : `${langSel.value}/`) + location.hash);
   }
 });
 
 function translateStatic(): void {
-  document.title = t('app.pageTitle');
+  // a shape page keeps its own title, which search shows
+  if (!shapeFromPath(location.pathname)) document.title = t('app.pageTitle');
   document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => (el.textContent = t(el.dataset.i18n!)));
   langSel.value = document.documentElement.lang;
   $('saveProject').title = t('project.saveHint');
