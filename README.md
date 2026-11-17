@@ -1,9 +1,11 @@
 # Lithobox Creator
 
-Design a lithophane light box in the browser and download it ready to print.
-Pick one of nine shapes, add photos from your device, set the sizes and
-closures, and export print ready STL or 3MF files. Any size works, from a
-small ornament to a 21 cm box.
+Turn your photos into 3D printable lithophane lamps, light boxes and
+ornaments, right in the browser. Pick one of nine shapes, from a light box
+with five pictures to a cylinder lamp, ball lamp, lampshade or ornament, add
+your photos, set the sizes and closures, and download print ready STL or 3MF
+files. Any size works, from a small ornament to a 21 cm box. Free, open
+source, and your photos never leave your device.
 
 **Live version:** https://lithobox.app
 
