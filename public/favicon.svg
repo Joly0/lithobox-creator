@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="7 7 50 50">
+  <defs>
+    <linearGradient id="litL" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6dc"/>
+      <stop offset="1" stop-color="#f6d48a"/>
+    </linearGradient>
+    <linearGradient id="litR" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fae6b4"/>
+      <stop offset="1" stop-color="#eebd62"/>
+    </linearGradient>
+    <!-- darker toward the bottom, like a thicker lithophane -->
+    <linearGradient id="tone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dfa24a"/>
+      <stop offset="1" stop-color="#bb7a28"/>
+    </linearGradient>
+  </defs>
+  <!-- each face is drawn in a unit square, mapped onto the isometric face -->
+  <g transform="matrix(21 12 0 24 11 20)">
+    <rect width="1" height="1" fill="#8a5520"/>
+    <rect x=".09" y=".08" width=".82" height=".84" fill="url(#litL)"/>
+    <circle cx=".64" cy=".33" r=".1" fill="#fffaf0"/>
+    <path d="M.09 .92 V.72 L.34 .45 L.52 .64 L.63 .54 L.91 .82 V.92 Z" fill="#d38f30" opacity=".8"/>
+  </g>
+  <g transform="matrix(21 -12 0 24 32 32)">
+    <rect width="1" height="1" fill="#6b4019"/>
+    <rect x=".09" y=".08" width=".82" height=".84" fill="url(#litR)"/>
+    <path d="M.35 .4 C.25 .44 .22 .57 .26 .68 C.3 .6 .33 .53 .38 .48 Z" fill="#a8681c"/>
+    <path d="M.26 .92 C.27 .78 .32 .69 .4 .665 C.415 .645 .415 .625 .41 .61 C.33 .58 .3 .48 .32 .4 C.34 .29 .43 .23 .52 .24 C.6 .25 .645 .31 .645 .38 L.655 .41 C.665 .43 .68 .45 .685 .465 L.655 .48 C.66 .5 .655 .51 .66 .52 C.655 .535 .645 .55 .63 .565 C.61 .58 .59 .585 .57 .58 C.565 .6 .565 .62 .57 .64 C.63 .67 .67 .76 .68 .92 Z" fill="url(#tone)"/>
+    <path d="M.6335 .321 C.6149 .2785 .576 .247 .52 .24 C.43 .23 .34 .29 .32 .4 C.3 .48 .33 .57 .41 .61 C.42 .55 .44 .48 .48 .42 C.52 .36 .57 .33 .6335 .321 Z" fill="#a8681c"/>
+    <path d="M.575 .41 Q.597 .39 .618 .412 M.598 .505 Q.622 .527 .642 .505" fill="none" stroke="#fff1cf" stroke-width=".018" stroke-linecap="round"/>
+  </g>
+  <g transform="matrix(21 -12 21 12 11 20)">
+    <rect width="1" height="1" fill="#9c6227"/>
+    <rect x=".1" y=".1" width=".8" height=".8" fill="#fff3d0"/>
+    <g transform="rotate(45 .5 .5)">
+      <ellipse cx=".54" cy=".56" rx=".24" ry=".16" fill="url(#tone)" opacity=".8"/>
+      <path d="M.76 .6 C.78 .74 .6 .8 .44 .76 C.36 .74 .3 .7 .3 .66" fill="none" stroke="#a8681c" stroke-width=".06" stroke-linecap="round" opacity=".85"/>
+      <circle cx=".34" cy=".52" r=".11" fill="#c27f26"/>
+      <path d="M.26 .46 L.25 .35 L.33 .42 Z M.36 .41 L.42 .33 L.43 .44 Z" fill="#c27f26"/>
+      <path d="M.29 .54 Q.31 .56 .33 .54 M.36 .54 Q.38 .56 .4 .54" fill="none" stroke="#8a5520" stroke-width=".015" stroke-linecap="round"/>
+    </g>
+  </g>
+  <path d="M32 8 L53 20 L53 44 L32 56 L11 44 L11 20 Z" fill="none" stroke="#3a2a1a" stroke-width="1.2" stroke-linejoin="round"/>
+</svg>
