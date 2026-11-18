@@ -26,6 +26,15 @@ describe('feedback form checks', () => {
     expect(title.length).toBeLessThanOrEqual(76);
     expect(labels).toEqual(['enhancement']);
   });
+
+  it('takes a rating of one to five stars and shows them in the title', () => {
+    const rating = { ...form, kind: 'rating', stars: 2 };
+    const { title, labels } = issueFor(parseFeedback(rating)!);
+    expect(title.startsWith('Rating ★★☆☆☆: The lid')).toBe(true);
+    expect(labels).toEqual(['rating']);
+    for (const stars of [0, 6, 2.5, '3', undefined]) expect(parseFeedback({ ...rating, stars })).toBeNull();
+    expect(parseFeedback({ ...form, stars: 4 })?.stars).toBe(0);
+  });
 });
 
 describe('rate limit', () => {

@@ -6,6 +6,7 @@ import { toStl } from '../export/stl';
 import { to3mf } from '../export/threemf';
 import { orientGroup } from '../export/transform';
 import { zip } from '../export/zip';
+import { offerRating } from './rating';
 
 export type PartName = (id: string) => string;
 
@@ -69,6 +70,7 @@ export function save(blob: Blob, name: string): void {
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  offerRating();
 }
 
 export interface ExportContext {

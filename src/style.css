@@ -64,6 +64,24 @@ button, input, select { font: inherit; color: inherit; }
 .feedback-foot { display: flex; justify-content: flex-end; }
 .feedback-thanks { text-align: center; padding: 18px 0 8px; }
 .feedback-thanks p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+/* the quick rating (src/ui/rating.ts): shares the preview's grid cell, so it sits over its corner */
+.rate { grid-column: 2; grid-row: 1; align-self: end; justify-self: end; z-index: 2; width: min(320px, calc(100% - 32px)); box-sizing: border-box; margin: 16px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 24px rgb(0 0 0 / 0.15); animation: rate-in 0.25s ease-out; }
+@keyframes rate-in { from { opacity: 0; transform: translateX(24px); } }
+@media (prefers-reduced-motion: reduce) { .rate { animation: none; } }
+.rate-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rate-close { border: 0; background: none; color: var(--muted); font-size: 15px; line-height: 1; padding: 4px 6px; margin: -4px -6px 0 0; cursor: pointer; }
+.rate-stars { display: flex; gap: 2px; margin-top: 6px; }
+.star { border: 0; background: none; padding: 2px 3px; font-size: 28px; line-height: 1; color: color-mix(in srgb, var(--muted) 40%, var(--panel)); cursor: pointer; }
+/* hover lights the star and the ones before it */
+.rate-stars:hover .star, .star.on { color: var(--accent); }
+.rate-stars .star:hover ~ .star { color: color-mix(in srgb, var(--muted) 40%, var(--panel)); }
+.star:focus-visible, .rate-close:focus-visible { outline: 2px solid var(--accent); border-radius: 4px; }
+.rate form { margin-top: 10px; }
+.rate .feedback-field { margin-bottom: 8px; }
+.rate .feedback-field textarea { min-height: 64px; }
+.rate-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rate-foot .link { font-size: 12.5px; text-align: left; }
+.rate-thanks { margin: 8px 0 0; color: var(--muted); }
 .logo { width: 22px; height: 22px; border-radius: 5px; background: var(--accent); box-shadow: inset 0 0 0 5px var(--accent), inset 0 0 0 11px #fff3d6; }
 #lang { width: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
 
@@ -255,4 +273,9 @@ a.btn { color: var(--fg); text-decoration: none; }
   .btn.more[aria-expanded='true'] { border-color: var(--accent); }
   .badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--warn); color: #fff; font-size: 11px; }
   .badge[hidden] { display: none; }
+  /* the rating: a strip right above the download bar, so it covers nothing */
+  .rate { order: 4; flex: none; align-self: stretch; width: auto; margin: 0; border-width: 1px 0 0; border-radius: 0; box-shadow: none; animation-name: rate-up; }
+  .star { font-size: 34px; padding: 3px 5px; }
+  .rate-close { font-size: 18px; padding: 8px 10px; margin: -8px -10px 0 0; }
 }
+@keyframes rate-up { from { opacity: 0; transform: translateY(16px); } }

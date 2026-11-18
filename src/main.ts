@@ -20,6 +20,7 @@ import { replayRestored } from './ui/restore';
 import { printLayout } from './ui/printlayout';
 import { renderChanges, wireChanges } from './ui/changes';
 import { renderFeedback, wireFeedback } from './ui/feedback';
+import { renderRating, wireRating } from './ui/rating';
 import { save, wireExports } from './ui/export';
 import { changedValues, hashFor, readHash } from './ui/hash';
 import { NoViewer, Viewer, type LampMap, type ModelViewer } from './ui/viewer';
@@ -715,10 +716,12 @@ function translateStatic(): void {
   renderProfile();
   renderChanges();
   renderFeedback();
+  renderRating();
   if (last) renderInfo(last);
 }
 wireChanges();
 wireFeedback(() => shape.id);
+wireRating();
 onLanguageChange(translateStatic);
 translateStatic();
 rebuild();

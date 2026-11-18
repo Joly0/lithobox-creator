@@ -18,7 +18,9 @@ export interface Config {
 }
 
 export interface Feedback {
-  kind: 'bug' | 'idea';
+  kind: 'bug' | 'idea' | 'rating';
+  /** 1 to 5 for a rating, 0 otherwise */
+  stars: number;
   message: string;
   email: string;
   version: string;
@@ -36,13 +38,16 @@ function oneLine(value: unknown, max: number): string {
 export function parseFeedback(input: unknown): Feedback | null {
   if (typeof input !== 'object' || input === null) return null;
   const f = input as Record<string, unknown>;
-  if (f.kind !== 'bug' && f.kind !== 'idea') return null;
+  if (f.kind !== 'bug' && f.kind !== 'idea' && f.kind !== 'rating') return null;
+  const stars = f.kind === 'rating' ? f.stars : 0;
+  if (f.kind === 'rating' && !(Number.isInteger(stars) && (stars as number) >= 1 && (stars as number) <= 5)) return null;
   const message = typeof f.message === 'string' ? f.message.trim() : '';
   if (message.length < 5 || message.length > 5000) return null;
   const email = typeof f.email === 'string' ? f.email.trim() : '';
   if (email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return null;
   return {
     kind: f.kind,
+    stars: stars as number,
     message,
     email,
     version: oneLine(f.version, 100),
@@ -59,6 +64,9 @@ function fenced(text: string): string {
   return `${fence}text\n${text}\n${fence}`;
 }
 
+const TITLES = { bug: 'Bug', idea: 'Idea', rating: 'Rating ' };
+const LABELS = { bug: 'bug', idea: 'enhancement', rating: 'rating' };
+
 export function issueFor(f: Feedback): { title: string; body: string; labels: string[] } {
   const details = [
     `Reply to: ${f.email || '(no email given)'}`,
@@ -68,9 +76,9 @@ export function issueFor(f: Feedback): { title: string; body: string; labels: st
     `Language: ${f.language}`,
   ].join('\n');
   return {
-    title: `${f.kind === 'bug' ? 'Bug' : 'Idea'}: ${oneLine(f.message, 70)}`,
+    title: `${TITLES[f.kind]}${'★'.repeat(f.stars)}${'☆'.repeat(f.stars ? 5 - f.stars : 0)}: ${oneLine(f.message, 70)}`,
     body: `${fenced(f.message)}\n\n${fenced(details)}`,
-    labels: [f.kind === 'bug' ? 'bug' : 'enhancement'],
+    labels: [LABELS[f.kind]],
   };
 }
 
