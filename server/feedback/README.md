@@ -6,12 +6,12 @@ Deployment notes for the endpoint behind the feedback form. It is self-hosted, r
 
 Page form -> this container -> issue in a private GitHub repository.
 
-The GitHub token stays off the page: it exists only in this container's environment, so visitors and their browsers never see it. Each issue carries the message, details like the app version and browser, and an email address to reply to when the visitor gave one. Visitor text is wrapped in fenced code blocks, so it cannot ping anyone or load images on GitHub. The container publishes no ports; only the reverse proxy reaches it.
+The GitHub token stays off the page: it exists only in this container's environment, so visitors and their browsers never see it. Each issue carries the message, details like the app version and browser, and an email address to reply to when the visitor gave one. Visitor text is wrapped in fenced code blocks, so it cannot ping anyone or load images on GitHub. Screenshots (up to three PNG, JPEG or WebP files of at most 1 MB each, checked by their first bytes) are committed to `feedback-images/` in the same repository and shown in the issue. The container publishes no ports; only the reverse proxy reaches it.
 
 ## Setup
 
 1. On GitHub, create the private repository that will receive the feedback.
-2. Create a fine-grained personal access token. Give it access to that repository only, with the permission "Issues: read and write". Note the expiry date, because the form stops working when the token expires.
+2. Create a fine-grained personal access token. Give it access to that repository only, with the permissions "Issues: read and write" and "Contents: read and write" (screenshots people add are stored in the `feedback-images/` folder of that repository). Note the expiry date, because the form stops working when the token expires.
 3. Create a `.env` file beside `compose.yml` and never commit it. It needs three lines: `GITHUB_TOKEN=<the token from step 2>`, `FEEDBACK_REPO=owner/name` and `PROXY_NETWORK=<the existing Docker network your reverse proxy can reach>`.
 4. In `compose.yml`, set `ALLOWED_ORIGIN` to the site the form lives on, and `CLIENT_IP_HEADER` to the request header your reverse proxy sets to the visitor's address, for example `x-real-ip`.
 5. Run `docker compose up -d --build`.

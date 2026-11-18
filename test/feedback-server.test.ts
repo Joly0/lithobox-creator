@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createHandler, createLimiter, issueFor, parseFeedback } from '../server/feedback/server';
 
 const ORIGIN = 'https://lithobox.app';
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
+const png = { type: 'image/png', data: PNG.toString('base64') };
 const form = { kind: 'bug', message: 'The lid does not fit.', email: '', version: 'v', shape: 'box', browser: 'b', language: 'en' };
 
 describe('feedback form checks', () => {
@@ -35,6 +37,14 @@ describe('feedback form checks', () => {
     for (const stars of [0, 6, 2.5, '3', undefined]) expect(parseFeedback({ ...rating, stars })).toBeNull();
     expect(parseFeedback({ ...form, stars: 4 })?.stars).toBe(0);
   });
+
+  it('takes up to three small real pictures and nothing else', () => {
+    expect(parseFeedback({ ...form, screenshots: [png, png, png] })?.screenshots).toEqual([{ ext: 'png', data: png.data }, { ext: 'png', data: png.data }, { ext: 'png', data: png.data }]);
+    const big = { type: 'image/png', data: Buffer.concat([PNG, Buffer.alloc(1024 * 1024)]).toString('base64') };
+    for (const screenshots of [[png, png, png, png], 'x', [null], [{ ...png, type: 'image/gif' }], [{ ...png, type: 'constructor' }], [{ ...png, type: 'image/jpeg' }], [{ ...png, data: 'no base64!' }], [big]]) {
+      expect(parseFeedback({ ...form, screenshots })).toBeNull();
+    }
+  });
 });
 
 describe('rate limit', () => {
@@ -54,7 +64,7 @@ describe('feedback endpoint', () => {
   let server: Server;
   afterEach(() => server.close());
 
-  async function start(github: () => Promise<Response>) {
+  async function start(github: (url: string) => Promise<Response>) {
     const calls: { url: string; init: RequestInit }[] = [];
     server = createServer(
       createHandler({
@@ -66,7 +76,7 @@ describe('feedback endpoint', () => {
         perDay: 10,
         fetch: ((url: string, init: RequestInit) => {
           calls.push({ url, init });
-          return github();
+          return github(url);
         }) as typeof fetch,
       }),
     );
@@ -86,6 +96,16 @@ describe('feedback endpoint', () => {
     expect((calls[0].init.headers as Record<string, string>).Authorization).toBe('Bearer secret');
   });
 
+  it('puts screenshots in the repository and shows them in the issue', async () => {
+    const page = 'https://github.com/me/inbox/blob/main/feedback-images/a.png';
+    const { calls, post } = await start(async (url) => new Response(url.includes('/contents/') ? JSON.stringify({ content: { html_url: page } }) : '{}', { status: 201 }));
+    expect((await post({ ...form, screenshots: [png] })).status).toBe(201);
+    expect(calls[0].url).toMatch(/^https:\/\/api\.github\.com\/repos\/me\/inbox\/contents\/feedback-images\/\d{4}-\d\d-\d\d-[\w-]+\.png$/);
+    expect(calls[0].init.method).toBe('PUT');
+    expect(JSON.parse(calls[0].init.body as string).content).toBe(png.data);
+    expect(JSON.parse(calls[1].init.body as string).body).toContain(`[![Screenshot 1](${page}?raw=true)](${page})`);
+  });
+
   it('answers the browser check before a post', async () => {
     const { url } = await start(async () => new Response());
     const res = await fetch(url, { method: 'OPTIONS', headers: { Origin: ORIGIN } });
@@ -99,7 +119,9 @@ describe('feedback endpoint', () => {
     expect((await post('not json')).status).toBe(400);
     expect((await post('null')).status).toBe(400);
     expect((await post({ ...form, message: 'hi' })).status).toBe(400);
-    expect((await post({ ...form, padding: 'x'.repeat(20_000) })).status).toBe(413);
+    // refused before it is all read, so the sender may see the connection drop instead of the 413
+    const huge = await post({ ...form, padding: 'x'.repeat(5_000_000) }).then((r) => r.status, (e) => e.cause?.code);
+    expect([413, 'ECONNRESET', 'EPIPE']).toContain(huge);
     expect((await post({ ...form, website: 'http://spam.example' })).status).toBe(200);
     expect(calls).toHaveLength(0);
     expect((await post(form)).status).toBe(201);

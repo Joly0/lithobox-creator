@@ -16,7 +16,8 @@ services:
     environment:
       # ---- GitHub ----
       # Fine-grained token (from .env) limited to the feedback repository, with only
-      # the "Issues: read and write" permission. Replace it when it expires: until
+      # the "Issues: read and write" and "Contents: read and write" permissions
+      # (contents: the screenshots are stored in the repository's feedback-images folder). Replace it when it expires: until
       # then people see "That didn't get through" and the log shows GitHub's 401.
       GITHUB_TOKEN: ${GITHUB_TOKEN:?set GITHUB_TOKEN in .env}
       # The repository that receives the issues, as owner/name (from .env). Make it

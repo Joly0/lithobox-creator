@@ -1,8 +1,12 @@
 // Takes a message from the page's feedback form and files it as an issue in a private repository.
 // It exists so the GitHub token stays off the page. Node standard library only, no build step.
+import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type RequestListener, type ServerResponse } from 'node:http';
 
-const MAX_BODY = 16 * 1024;
+const MAX_IMAGES = 3;
+const MAX_IMAGE = 1024 * 1024;
+// the text, plus each screenshot as base64 (4 characters for every 3 bytes)
+const MAX_BODY = 16 * 1024 + MAX_IMAGES * Math.ceil((MAX_IMAGE * 4) / 3);
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 
@@ -27,6 +31,13 @@ export interface Feedback {
   shape: string;
   browser: string;
   language: string;
+  screenshots: Screenshot[];
+}
+
+/** A checked picture, still in base64, which is what GitHub takes. */
+export interface Screenshot {
+  ext: string;
+  data: string;
 }
 
 /** One line of at most `max` characters; anything that is not text becomes empty. */
@@ -45,6 +56,8 @@ export function parseFeedback(input: unknown): Feedback | null {
   if (message.length < 5 || message.length > 5000) return null;
   const email = typeof f.email === 'string' ? f.email.trim() : '';
   if (email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return null;
+  const screenshots = parseScreenshots(f.screenshots);
+  if (!screenshots) return null;
   return {
     kind: f.kind,
     stars: stars as number,
@@ -54,6 +67,7 @@ export function parseFeedback(input: unknown): Feedback | null {
     shape: oneLine(f.shape, 100),
     browser: oneLine(f.browser, 300),
     language: oneLine(f.language, 20),
+    screenshots,
   };
 }
 
@@ -67,7 +81,31 @@ function fenced(text: string): string {
 const TITLES = { bug: 'Bug', idea: 'Idea', rating: 'Rating ' };
 const LABELS = { bug: 'bug', idea: 'enhancement', rating: 'rating' };
 
-export function issueFor(f: Feedback): { title: string; body: string; labels: string[] } {
+// the first bytes each format starts with, so only real pictures reach the repository
+const IMAGE_TYPES = new Map<unknown, { ext: string; magic: (b: Buffer) => boolean }>([
+  ['image/png', { ext: 'png', magic: (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) }],
+  ['image/jpeg', { ext: 'jpg', magic: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff }],
+  ['image/webp', { ext: 'webp', magic: (b) => b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP' }],
+]);
+
+/** The checked screenshots, or null when one is not a small PNG, JPEG or WebP. */
+function parseScreenshots(input: unknown): Screenshot[] | null {
+  if (input === undefined) return [];
+  if (!Array.isArray(input) || input.length > MAX_IMAGES) return null;
+  const shots: Screenshot[] = [];
+  for (const item of input) {
+    const type = IMAGE_TYPES.get((item as { type?: unknown } | null)?.type);
+    const data = (item as { data?: unknown } | null)?.data;
+    if (!type || typeof data !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) return null;
+    const bytes = Buffer.from(data, 'base64');
+    if (bytes.length > MAX_IMAGE || !type.magic(bytes)) return null;
+    shots.push({ ext: type.ext, data: bytes.toString('base64') });
+  }
+  return shots;
+}
+
+/** `shots` are the screenshots' pages in the repository, shown in the issue and linked. */
+export function issueFor(f: Feedback, shots: string[] = []): { title: string; body: string; labels: string[] } {
   const details = [
     `Reply to: ${f.email || '(no email given)'}`,
     `Version: ${f.version}`,
@@ -77,7 +115,7 @@ export function issueFor(f: Feedback): { title: string; body: string; labels: st
   ].join('\n');
   return {
     title: `${TITLES[f.kind]}${'★'.repeat(f.stars)}${'☆'.repeat(f.stars ? 5 - f.stars : 0)}: ${oneLine(f.message, 70)}`,
-    body: `${fenced(f.message)}\n\n${fenced(details)}`,
+    body: [fenced(f.message), ...shots.map((url, i) => `[![Screenshot ${i + 1}](${url}?raw=true)](${url})`), fenced(details)].join('\n\n'),
     labels: [LABELS[f.kind]],
   };
 }
@@ -117,7 +155,8 @@ async function readBody(req: IncomingMessage): Promise<string | null> {
 
 export function createHandler(config: Config): RequestListener {
   const send = config.fetch ?? fetch;
-  const allowed = createLimiter(config.perIpPerHour, config.perDay, config.now ?? Date.now);
+  const now = config.now ?? Date.now;
+  const allowed = createLimiter(config.perIpPerHour, config.perDay, now);
   const reply = (res: ServerResponse, status: number) => {
     res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(`{"ok":${status < 300}}`);
@@ -135,7 +174,11 @@ export function createHandler(config: Config): RequestListener {
     if (req.method !== 'POST') return reply(res, 405);
 
     const body = await readBody(req).catch(() => null);
-    if (body === null) return reply(res, 413);
+    if (body === null) {
+      // the rest of the body is never read, so this connection can't carry another request
+      res.setHeader('Connection', 'close');
+      return reply(res, 413);
+    }
     let input: unknown;
     try {
       input = JSON.parse(body);
@@ -155,9 +198,9 @@ export function createHandler(config: Config): RequestListener {
     }
 
     // logs carry status codes only: what visitors write stays out of them
-    try {
-      const github = await send(`https://api.github.com/repos/${config.repo}/issues`, {
-        method: 'POST',
+    const github = (method: string, path: string, body: unknown) =>
+      send(`https://api.github.com/repos/${config.repo}/${path}`, {
+        method,
         headers: {
           Accept: 'application/vnd.github+json',
           Authorization: `Bearer ${config.token}`,
@@ -165,13 +208,24 @@ export function createHandler(config: Config): RequestListener {
           'User-Agent': 'lithobox-feedback',
           'X-GitHub-Api-Version': '2022-11-28',
         },
-        body: JSON.stringify(issueFor(feedback)),
+        body: JSON.stringify(body),
         signal: AbortSignal.timeout(10_000),
       });
-      if (!github.ok) {
-        console.error(`feedback: GitHub answered ${github.status}`);
-        return reply(res, 502);
+    const refused = (status: number) => {
+      console.error(`feedback: GitHub answered ${status}`);
+      reply(res, 502);
+    };
+    try {
+      // the screenshots go into the repository first, so the issue can show them
+      const shots: string[] = [];
+      for (const shot of feedback.screenshots) {
+        const name = `${new Date(now()).toISOString().slice(0, 10)}-${randomUUID()}.${shot.ext}`;
+        const put = await github('PUT', `contents/feedback-images/${name}`, { message: 'Add a feedback screenshot', content: shot.data });
+        if (!put.ok) return refused(put.status);
+        shots.push(((await put.json()) as { content: { html_url: string } }).content.html_url);
       }
+      const issue = await github('POST', 'issues', issueFor(feedback, shots));
+      if (!issue.ok) return refused(issue.status);
     } catch {
       console.error('feedback: GitHub could not be reached');
       return reply(res, 502);
@@ -193,7 +247,8 @@ if (process.argv[1] === import.meta.filename) {
       perDay: Number(PER_DAY ?? 50),
     }),
   );
-  server.requestTimeout = 15_000;
+  // long enough for three screenshots over a slow phone connection
+  server.requestTimeout = 60_000;
   server.listen(Number(PORT ?? 8080), () => console.log('feedback: listening'));
   process.on('SIGTERM', () => server.close(() => process.exit(0)));
 }
