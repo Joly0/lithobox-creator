@@ -165,7 +165,8 @@ export function wireRating(): void {
     flush();
     $('rateError').hidden = true;
     try {
-      await sendFeedback({ kind: 'rating', stars, message: message.value });
+      // the stars are already counted; only a comment goes to the server
+      if (message.value.trim()) await sendFeedback({ kind: 'rating', stars, message: message.value });
       form.reset();
       form.hidden = true;
       $('rateThanks').hidden = false;
