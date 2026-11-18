@@ -140,9 +140,12 @@
       </section>
       <!-- phone only: drag to share the screen between the preview and the settings -->
       <div id="splitter" class="splitter" role="separator" aria-orientation="horizontal" tabindex="0"></div>
-      <!-- the quick rating after a download (src/ui/rating.ts): over the preview's corner on the
-           desktop, a strip above the download bar on a phone; never a modal, so nothing waits on it -->
-      <section id="rate" class="rate" aria-labelledby="rateTitle" aria-live="polite" hidden>
+      <!-- the quick rating (src/ui/rating.ts): on the desktop a tab on the preview's right edge that
+           slides out, by hand or by itself after a download; on a phone a strip above the download
+           bar after a download. Never a modal, so nothing waits on it -->
+      <section id="rate" class="rate" aria-labelledby="rateTitle">
+        <button type="button" id="rateTab" class="rate-tab" aria-expanded="false" aria-controls="rateBody">★ <span data-i18n="feedback.rate.tab"></span></button>
+        <div id="rateBody" class="rate-body" aria-live="polite">
         <div class="rate-head"><strong id="rateTitle"></strong><button type="button" id="rateClose" class="rate-close">✕</button></div>
         <div id="rateStars" class="rate-stars"></div>
         <form id="rateForm" hidden>
@@ -151,6 +154,7 @@
           <div class="rate-foot"><button type="button" id="rateMore" class="link" data-i18n="feedback.rate.more"></button><button type="submit" id="rateSend" class="btn primary" data-i18n="feedback.send"></button></div>
         </form>
         <p id="rateThanks" class="rate-thanks" data-i18n="feedback.thanks" hidden></p>
+        </div>
       </section>
       <!-- below the preview on the desktop, the last row of the column on a phone -->
       <div class="outbar">

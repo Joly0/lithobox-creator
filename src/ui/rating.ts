@@ -49,6 +49,7 @@ let state: RatingState = { release: RELEASE, closes: 0 };
 let stars = 0;
 let hideTimer = 0;
 let trackTimer = 0;
+let byHand = false; // opened from the tab: closing it is no answer to a question
 
 /** The texts the page sweep can't set; call again after a language change. */
 export function renderRating(): void {
@@ -66,30 +67,38 @@ function flush(): void {
   track('rating', { stars: String(stars), shape: feedbackContext().shape });
 }
 
+const isOpen = () => $('rate').classList.contains('open');
+
+/** Back to the tab on the desktop; gone on a phone. */
 function hide(): void {
   flush();
   clearTimeout(hideTimer);
-  $('rate').hidden = true;
+  $('rate').classList.remove('open');
+  $('rateTab').setAttribute('aria-expanded', 'false');
 }
 
 /** Closed without a rating: asked again less often. */
 function dismiss(): void {
   hide();
-  if (stars) return;
+  if (stars || byHand) return;
   state = { ...state, closes: state.closes + 1, closedAt: Date.now() };
   store(state);
 }
 
-function show(): void {
+function show(manual: boolean): void {
+  // already out: keep what the person is typing
+  if (isOpen()) return;
+  byHand = manual;
   stars = 0;
   $('rateStars').querySelectorAll('button').forEach((b) => b.classList.remove('on'));
   $('rateForm').hidden = true;
   $('rateThanks').hidden = true;
   $('rateError').hidden = true;
   renderRating();
-  $('rate').hidden = false;
-  // nobody touched it: it goes away by itself
-  hideTimer = window.setTimeout(dismiss, 15_000);
+  $('rate').classList.add('open');
+  $('rateTab').setAttribute('aria-expanded', 'true');
+  // nobody touched it: it goes back by itself
+  if (!manual) hideTimer = window.setTimeout(dismiss, 15_000);
 }
 
 /** After a download; shows the panel when the rules above allow it. */
@@ -101,7 +110,7 @@ export function offerRating(): void {
   newVersion = !!s?.ratedAt && s.release !== RELEASE;
   state = s?.release === RELEASE ? s : { release: RELEASE, closes: 0 };
   // after the browser's own download prompt, not on top of it
-  setTimeout(show, 2000);
+  setTimeout(() => show(false), 2000);
 }
 
 function rate(n: number): void {
@@ -133,6 +142,11 @@ export function wireRating(): void {
     }),
   );
   $('rateClose').addEventListener('click', dismiss);
+  $('rateTab').addEventListener('click', () => {
+    if (isOpen()) return dismiss();
+    show(true);
+    ($('rateStars').firstElementChild as HTMLElement).focus();
+  });
   panel.addEventListener('keydown', (e) => e.key === 'Escape' && dismiss());
   // once someone is using it, it stays until they close it
   addEventListener('pagehide', flush);

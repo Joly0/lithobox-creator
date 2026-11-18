@@ -32,6 +32,7 @@
   "feedback.failed": "Das hat nicht geklappt. Dein Text ist noch da, bitte versuch es gleich noch einmal.",
   "feedback.thanks": "Danke, ist unterwegs!",
   "feedback.thanksMore": "Ich lese alles, was hier ankommt.",
+  "feedback.rate.tab": "Bewerten",
   "feedback.rate.title": "Wie gefällt dir Lithobox Creator?",
   "feedback.rate.titleNew": "Wie gefällt dir die neue Version?",
   "feedback.rate.star": "{n} von 5 Sternen",
