@@ -226,6 +226,10 @@ export function createHandler(config: Config): RequestListener {
       }
       const issue = await github('POST', 'issues', issueFor(feedback, shots));
       if (!issue.ok) return refused(issue.status);
+      // the issue exists now: an unreadable reply must not turn into an error the visitor would retry
+      const { html_url } = (await issue.json().catch(() => ({}))) as { html_url?: string };
+      const what = feedback.kind === 'rating' ? `rating ${feedback.stars}/5` : feedback.kind;
+      console.log(`feedback: ${what}, ${shots.length} screenshot(s) -> ${html_url ?? 'issue created'}`);
     } catch {
       console.error('feedback: GitHub could not be reached');
       return reply(res, 502);
@@ -237,18 +241,22 @@ export function createHandler(config: Config): RequestListener {
 if (process.argv[1] === import.meta.filename) {
   const { GITHUB_TOKEN, FEEDBACK_REPO, ALLOWED_ORIGIN, CLIENT_IP_HEADER, PER_IP_PER_HOUR, PER_DAY, PORT } = process.env;
   if (!GITHUB_TOKEN || !FEEDBACK_REPO) throw new Error('GITHUB_TOKEN and FEEDBACK_REPO are required');
-  const server = createServer(
-    createHandler({
-      token: GITHUB_TOKEN,
-      repo: FEEDBACK_REPO,
-      origin: ALLOWED_ORIGIN ?? 'https://lithobox.app',
-      clientIpHeader: (CLIENT_IP_HEADER ?? 'cf-connecting-ip').toLowerCase(),
-      perIpPerHour: Number(PER_IP_PER_HOUR ?? 5),
-      perDay: Number(PER_DAY ?? 50),
-    }),
-  );
+  const config: Config = {
+    token: GITHUB_TOKEN,
+    repo: FEEDBACK_REPO,
+    origin: ALLOWED_ORIGIN ?? 'https://lithobox.app',
+    clientIpHeader: (CLIENT_IP_HEADER ?? 'cf-connecting-ip').toLowerCase(),
+    perIpPerHour: Number(PER_IP_PER_HOUR ?? 5),
+    perDay: Number(PER_DAY ?? 50),
+  };
+  const server = createServer(createHandler(config));
   // long enough for three screenshots over a slow phone connection
   server.requestTimeout = 60_000;
-  server.listen(Number(PORT ?? 8080), () => console.log('feedback: listening'));
+  const port = Number(PORT ?? 8080);
+  server.listen(port, () => {
+    console.log(`feedback: listening on port ${port}, Node ${process.version}`);
+    console.log(`feedback: issues go to ${config.repo}, accepted from ${config.origin}`);
+    console.log(`feedback: limits ${config.perIpPerHour} per visitor per hour, ${config.perDay} per day, visitor IP from ${config.clientIpHeader}`);
+  });
   process.on('SIGTERM', () => server.close(() => process.exit(0)));
 }
