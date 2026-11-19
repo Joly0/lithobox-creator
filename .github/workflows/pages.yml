@@ -1,9 +1,11 @@
 # Builds the site and publishes it to GitHub Pages on every push to main.
+# Pull requests (including Dependabot's) only run the tests and build.
 name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -12,7 +14,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  # Per ref, so a pull request run never cancels a main deploy.
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -27,11 +30,13 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

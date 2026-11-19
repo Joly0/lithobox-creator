@@ -1,0 +1,38 @@
+# Dependabot opens pull requests that bump outdated dependencies.
+# Each run tests them through the pull_request trigger in workflows/pages.yml.
+version: 2
+
+updates:
+  # ---------------------------------------------------------------
+  # npm packages from package.json / package-lock.json
+  # ---------------------------------------------------------------
+  - package-ecosystem: npm
+    # Folder that holds package.json. Change only if the app moves
+    # into a subfolder.
+    directory: /
+    schedule:
+      # How often Dependabot looks for updates. "monthly" keeps the
+      # pull request count low; "weekly" catches updates sooner at the
+      # cost of more pull requests to review.
+      interval: monthly
+    groups:
+      # Puts every npm bump into one pull request instead of one per
+      # package. Remove the group if a single bump keeps breaking the
+      # build and you want to merge the others without it.
+      npm:
+        patterns: ["*"]
+
+  # ---------------------------------------------------------------
+  # GitHub Actions used in .github/workflows
+  # ---------------------------------------------------------------
+  - package-ecosystem: github-actions
+    # For this ecosystem "/" means the .github/workflows folder.
+    directory: /
+    schedule:
+      # Actions change rarely; monthly is plenty. Old majors get
+      # retired by GitHub, which is what these bumps protect against.
+      interval: monthly
+    groups:
+      # One pull request for all action bumps.
+      actions:
+        patterns: ["*"]
