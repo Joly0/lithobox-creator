@@ -27,10 +27,6 @@ updates:
       # umlauts. Remove once a 2.x release supports it and tests pass.
       - dependency-name: opentype.js
         update-types: ["version-update:semver-major"]
-      # Node type definitions must match the Node version CI and the
-      # feedback server run (22). Remove when both move to a newer Node.
-      - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
 
   # ---------------------------------------------------------------
   # GitHub Actions used in .github/workflows
