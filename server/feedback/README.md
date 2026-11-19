@@ -34,7 +34,7 @@ Issues arrive in the private repository. GitHub cannot transfer an issue from a 
 
 ## Troubleshooting
 
-Read the logs with `docker compose logs`. They carry status codes only and never the messages visitors sent.
+Read the logs with `docker compose logs`. At startup they name the Node version, repository, allowed origin, limits and client IP header; each accepted feedback or rating adds one line with its kind, stars, screenshot count and issue link. Errors carry status codes only, and the messages visitors sent are never logged.
 
 - `feedback: GitHub answered 401`: the token is wrong or expired. Put a fresh token in the `.env` file and run `docker compose up -d` again. Until then, the form shows an error on the page.
 - `feedback: rate limit reached`: one of the caps was hit. If it blocks real feedback, raise the cap in `compose.yml`.
