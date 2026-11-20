@@ -6,6 +6,7 @@
   "seo.intro": "Lithobox Creator trasforma le tue foto in litofanie da stampare in 3D: rilievi sottili che mostrano l'immagine quando la luce li attraversa. Progetta una light box, una lampada o un pendente nel browser e scaricali in STL o 3MF per Bambu Studio, OrcaSlicer o qualsiasi slicer. È gratuito, open source, e le tue foto non lasciano mai il tuo dispositivo.",
   "seo.shapes": "Forme: scatola con fino a cinque immagini, immagine piatta come cornice o light box, lampada cilindrica, arco, lampada poligonale, paralume, lampada a sfera, pendente (cerchio, stella, esagono, cuore) e cuore.",
   "seo.features": "Funzioni: ritaglio e regolazione di ogni foto, anteprima della lampada, litofanie a colori (strati ciano, magenta e giallo), chiusure del coperchio, portalampade, vani batterie, file di progetto e link di condivisione. In italiano, inglese, tedesco, francese e spagnolo.",
+  "seo.about": "Info",
   "seo.noscript": "Questo strumento richiede JavaScript e WebGL. Attiva JavaScript per usarlo.",
   "changes.title": "Novità",
   "changes.close": "Chiudi",

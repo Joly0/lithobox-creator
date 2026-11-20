@@ -34,6 +34,12 @@ describe('language pages', () => {
     expect(languageFromPath('/xx/')).toBeNull();
   });
 
+  it('links every shape page and language from the About panel', () => {
+    const about = html.slice(html.indexOf('<details class="about"'), html.indexOf('</details>', html.indexOf('<details class="about"')));
+    for (const page of SHAPE_PAGES) expect(about).toContain(`href="https://lithobox.app/${page.slug}/"`);
+    for (const lang of languages) expect(about).toContain(`href="https://lithobox.app/${lang === 'en' ? '' : `${lang}/`}"`);
+  });
+
   it('builds each shape page with its own texts and no language alternates', () => {
     const en = dict('en');
     for (const page of SHAPE_PAGES) {

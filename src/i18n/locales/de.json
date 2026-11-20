@@ -6,6 +6,7 @@
   "seo.intro": "Lithobox Creator macht aus deinen Fotos Lithophanien für den 3D-Drucker: dünne Reliefs, die das Bild zeigen, wenn Licht hindurchscheint. Gestalte im Browser eine Leuchtbox, Lampe oder einen Anhänger und lade sie als STL oder 3MF für Bambu Studio, OrcaSlicer oder jeden anderen Slicer herunter. Kostenlos, Open Source, und deine Fotos verlassen nie dein Gerät.",
   "seo.shapes": "Formen: Box mit bis zu fünf Bildern, flaches Bild als Rahmen oder Leuchtbox, Zylinderlampe, Bogen, Vieleck-Lampe, Lampenschirm, Kugellampe, Anhänger (Kreis, Stern, Sechseck, Herz) und Herz.",
   "seo.features": "Funktionen: jedes Foto zuschneiden und anpassen, Lampenvorschau, farbige Lithophanien (Cyan-, Magenta- und Gelb-Schichten), Deckelverschlüsse, Lampenfassungen, Batteriefächer, Projektdateien und Links zum Teilen. Auf Deutsch, Englisch, Französisch, Spanisch und Italienisch.",
+  "seo.about": "Über",
   "seo.noscript": "Dieses Werkzeug braucht JavaScript und WebGL. Bitte aktiviere JavaScript, um es zu nutzen.",
   "changes.title": "Neuigkeiten",
   "changes.close": "Schließen",

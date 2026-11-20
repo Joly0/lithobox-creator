@@ -6,6 +6,7 @@
   "seo.intro": "Lithobox Creator convierte tus fotos en litofanías para imprimir en 3D: relieves finos que muestran la imagen cuando la luz los atraviesa. Diseña una caja de luz, una lámpara o un colgante en el navegador y descárgalos en STL o 3MF para Bambu Studio, OrcaSlicer o cualquier laminador. Es gratis, de código abierto, y tus fotos nunca salen de tu dispositivo.",
   "seo.shapes": "Formas: caja con hasta cinco imágenes, imagen plana como marco o caja de luz, lámpara cilíndrica, arco, lámpara poligonal, pantalla de lámpara, lámpara de bola, colgante (círculo, estrella, hexágono, corazón) y corazón.",
   "seo.features": "Funciones: recorta y ajusta cada foto, vista previa de la lámpara, litofanías en color (capas cian, magenta y amarilla), cierres de tapa, portalámparas, compartimentos para pilas, archivos de proyecto y enlaces para compartir. En español, inglés, alemán, francés e italiano.",
+  "seo.about": "Acerca de",
   "seo.noscript": "Esta herramienta necesita JavaScript y WebGL. Activa JavaScript para usarla.",
   "changes.title": "Novedades",
   "changes.close": "Cerrar",

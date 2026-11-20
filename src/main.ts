@@ -746,4 +746,8 @@ for (const el of viewToggles)
   });
 
 // a reload can bring back ticked boxes and moved sliders: apply them like a click would
+// the About panel lies over the app: a click anywhere else closes it
+const about = document.getElementById('about') as HTMLDetailsElement;
+document.addEventListener('click', (e) => { if (!about.contains(e.target as Node)) about.open = false; });
+
 replayRestored(staticInputs);

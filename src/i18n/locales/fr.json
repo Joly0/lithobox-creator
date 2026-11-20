@@ -6,6 +6,7 @@
   "seo.intro": "Lithobox Creator transforme vos photos en lithophanies à imprimer en 3D : de fins reliefs qui révèlent l'image quand la lumière les traverse. Créez une boîte lumineuse, une lampe ou un pendentif dans le navigateur et téléchargez-les en STL ou 3MF pour Bambu Studio, OrcaSlicer ou tout autre trancheur. C'est gratuit, open source, et vos photos ne quittent jamais votre appareil.",
   "seo.shapes": "Formes : boîte jusqu'à cinq images, image plate en cadre ou boîte lumineuse, lampe cylindrique, arc, lampe polygonale, abat-jour, lampe boule, pendentif (cercle, étoile, hexagone, cœur) et cœur.",
   "seo.features": "Fonctions : recadrage et réglage de chaque photo, aperçu de la lampe, lithophanies en couleur (couches cyan, magenta et jaune), fermetures de couvercle, douilles de lampe, logements de piles, fichiers de projet et liens de partage. Disponible en français, anglais, allemand, espagnol et italien.",
+  "seo.about": "À propos",
   "seo.noscript": "Cet outil a besoin de JavaScript et de WebGL. Activez JavaScript pour l'utiliser.",
   "changes.title": "Nouveautés",
   "changes.close": "Fermer",
